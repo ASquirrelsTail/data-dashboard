@@ -1,13 +1,7 @@
 let map;
 
 function initMap() {
-	map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 6,
-        center: {
-            lat: 52.483333, 
-            lng: -1.9
-        }
-    });
+	
 }
 
 $(() => {
@@ -17,7 +11,7 @@ $(() => {
 		$("#loading_status").text(`Parsing data.`);
 		let clientData = d3.csv.parse(data);
 		let uniquePostcodes = getUniquePostcodes(clientData)
-		getLatLngFromPostcodes(uniquePostcodes, clientData, assignLatLngIDs);
+		getLatLngFromPostcodes(uniquePostcodes, clientData, assignLatLngIDs, null);
 	});
 });
 
@@ -96,7 +90,63 @@ function assignLatLngIDs(postcodeData, data, callBack) {
 			}
 		});
 	});
-	console.log(locationIDs, data);
+	console.log("Data prepared: ", locationIDs, data);
+
+	useData(locationIDs, data);
+}
+
+function useData(locationIDs, data) {
+
+	let ndx = crossfilter(data);
+
+	let parseDate = d3.time.format("%d/%m/%Y").parse;
+
+	data.forEach((d) => d.date = parseDate(d.date));
+
+	var dateDim = ndx.dimension(dc.pluck("date"));
+	var totalSpendPerMonth = dateDim.group().reduceSum(dc.pluck("spend"));
+
+	var minDate = dateDim.bottom(1)[0].date;
+	var maxDate = dateDim.top(1)[0].date;
+
+	let chart = dc.lineChart("#line-graph");
+
+	chart.width($("#line-graph").parent().innerWidth())
+		.height($("#line-graph").parent().innerHeight())
+		.margins({top: 15, right: 15, left: 50, bottom: 50})
+		.dimension(dateDim)
+		.group(totalSpendPerMonth)
+		.transitionDuration(500)
+		.x(d3.time.scale().domain([minDate, maxDate]))
+		.xAxisLabel("Month")
+		.yAxis().ticks(4);
+
+	dc.renderAll();
+
+	$("#loading_status").text(`Loading Google Maps.`);
+
+	let map = new google.maps.Map(document.getElementById("map"), {
+      	zoom: 6,
+       	center: {
+           	lat: 52.483333, 
+           	lng: -1.9
+       	},
+  		mapTypeControl: false,
+  		scaleControl: false,
+  		streetViewControl: false,
+  		rotateControl: false,
+  		fullscreenControl: false
+    });
+
+	$("#loading_status").text(`Adding map markers.`);
+	locationIDs.forEach((location, i) => {
+		location.marker = new google.maps.Marker({position: {lat: location.lat, lng: location.lng}, map: map});
+		location.marker.addListener('click', () => {
+
+			
+        });
+	});
+
 	$(".modal-cover").fadeOut();
 }
 
