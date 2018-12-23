@@ -101,25 +101,40 @@ function useData(locationIDs, data) {
 
 	let parseDate = d3.time.format("%d/%m/%Y").parse;
 
-	data.forEach((d) => d.date = parseDate(d.date));
+	data.forEach((d) => {
+		d.date = parseDate(d.date);
+		d.spend = parseInt(d.spend);
+	});
 
 	var dateDim = ndx.dimension(dc.pluck("date"));
-	var totalSpendPerMonth = dateDim.group().reduceSum(dc.pluck("spend"));
+
+	var totalSpend = dateDim.group().reduceSum(dc.pluck("spend"));
 
 	var minDate = dateDim.bottom(1)[0].date;
 	var maxDate = dateDim.top(1)[0].date;
 
 	let chart = dc.lineChart("#line-graph");
 
-	chart.width($("#line-graph").parent().innerWidth())
-		.height($("#line-graph").parent().innerHeight())
-		.margins({top: 15, right: 15, left: 50, bottom: 50})
+	chart.margins({top: 15, right: 50, left: 50, bottom: 50})
+		.brushOn(false)
+		//.elasticY(true)
 		.dimension(dateDim)
-		.group(totalSpendPerMonth)
+		.group(totalSpend)
 		.transitionDuration(500)
 		.x(d3.time.scale().domain([minDate, maxDate]))
 		.xAxisLabel("Month")
 		.yAxis().ticks(4);
+
+	if ($(window).innerWidth() >= 768) {
+		chart.width($("#line-graph").parent().innerWidth())
+			.height(Math.min($("#line-graph").parent().innerWidth() * 0.3, 300))
+	}else{
+		chart.width($("#line-graph").parent().innerWidth())
+			.height($("#line-graph").parent().innerWidth() * 0.5)
+			.xAxis().ticks(6);
+	}
+
+	var filterDim = ndx.dimension(dc.pluck("locationID"));
 
 	dc.renderAll();
 
@@ -141,12 +156,73 @@ function useData(locationIDs, data) {
 	$("#loading_status").text(`Adding map markers.`);
 	locationIDs.forEach((location, i) => {
 		location.marker = new google.maps.Marker({position: {lat: location.lat, lng: location.lng}, map: map});
+		location.active = true;
 		location.marker.addListener('click', () => {
 
+			if (!location.active) {
+				location.active = true;
+			}else{
+				
+				if (locationIDs.every((item) => item.active)) {
+					locationIDs.forEach((item) => item.active = false);
+					location.active = true;
+				}else if (locationIDs.every((item) => !item.active || item == location)) locationIDs.forEach((item) => item.active = true);
+				else location.active = false;
+			}
+			// .reduce(
+			// (p, v) => {
+			// 	if (v.locationID == i) p.total += parseInt(v.spend);
+			// 	return p;
+			// }, (p, v) => {
+			// 	if (v.locationID == i) p.total -= parseInt(v.spend);
+			// 	return p;
+			// }, () => {
+			// 	return {total: 0}
+			// });
+        	
+   //      	chart.group(spendPerMonthAtID)
+   //      	.valueAccessor((d) => parseInt(d.value.total))
+        	
+        	filterDim.filter(null);
+        	filterDim.filter((d) => locationIDs[d].active);
+   			chart.redraw();
+
+        	locationIDs.forEach((location) => {
+        		if (location.active) location.marker.setOptions({'opacity': 1});
+        		else location.marker.setOptions({'opacity': 0.5});
+        	});
 			
         });
+	});
+
+   	
+
+	$(window).on("resize", () => {
+		if (!debounce) {
+			debounce = true;
+			setTimeout(() => {
+				debounce = false;
+
+				if ($(window).innerWidth() >= 768) {
+					chart.width($("#line-graph").parent().innerWidth())
+						.height(Math.min($("#line-graph").parent().innerWidth() * 0.3, 300))
+						.transitionDuration(0);
+				}else{
+					chart.width($("#line-graph").parent().innerWidth())
+						.height($("#line-graph").parent().innerWidth() * 0.5)
+						.transitionDuration(0)
+						.xAxis().ticks(6);
+				}
+				
+
+				dc.renderAll();
+
+				chart.transitionDuration(500);
+			}, 500);
+		}
 	});
 
 	$(".modal-cover").fadeOut();
 }
 
+let debounce = false;
