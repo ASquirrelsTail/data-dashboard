@@ -84,7 +84,7 @@ function assignLatLngIDs(postcodeData, data, callBack) {
 					let uniqueIndex = locationIDs.findIndex((location) => (location.postcode == item.postcode)); //Check if that postcode already exists in the list of locations
 					if (uniqueIndex < 0) { //If it doesn't, add it in and add its ID to the data
 						item.locationID = locationIDs.length;
-						locationIDs.push({postcode: resultData.result.postcode, lat: resultData.result.latitude, lng: resultData.result.longitude});
+						locationIDs.push({postcode: resultData.result.postcode, lat: resultData.result.latitude, lng: resultData.result.longitude, active: true});
 					}else item.locationID = uniqueIndex; //If it does, add its location ID to the data
 				}
 			}
@@ -115,6 +115,9 @@ function useData(locationIDs, data) {
 
 	let chart = dc.lineChart("#line-graph");
 
+	let spendPie = dc.pieChart("#spend-pie");
+	let transactionPie = dc.pieChart("#transaction-pie");
+
 	chart.margins({top: 15, right: 50, left: 50, bottom: 50})
 		.brushOn(false)
 		//.elasticY(true)
@@ -125,16 +128,35 @@ function useData(locationIDs, data) {
 		.xAxisLabel("Month")
 		.yAxis().ticks(4);
 
+	//var filterDim = ndx.dimension(dc.pluck("locationID"));
+
+	let selectionDim = ndx.dimension((d) => {
+		if(locationIDs[d.locationID].active) return "Selection";
+		else return "Outside selection";
+	});
+	let spendGroup = selectionDim.group().reduceSum(dc.pluck("spend"));
+	let transactionGroup = selectionDim.group().reduceCount(dc.pluck("spend"));
+
+	spendPie.dimension(selectionDim)
+		.group(spendGroup);
+
+	transactionPie.dimension(selectionDim)
+		.group(transactionGroup);
+
 	if ($(window).innerWidth() >= 768) {
 		chart.width($("#line-graph").parent().innerWidth())
 			.height(Math.min($("#line-graph").parent().innerWidth() * 0.3, 300))
+		let pieSize = $("#map").height() / 2.5;
+		spendPie.height(pieSize).width(pieSize);
+		transactionPie.height(pieSize).width(pieSize);
 	}else{
 		chart.width($("#line-graph").parent().innerWidth())
 			.height($("#line-graph").parent().innerWidth() * 0.5)
 			.xAxis().ticks(6);
+			let pieSize = $("#spend-pie").parent().width() * 0.7;
+			spendPie.height(pieSize).width(pieSize);
+			transactionPie.height(pieSize).width(pieSize);
 	}
-
-	var filterDim = ndx.dimension(dc.pluck("locationID"));
 
 	dc.renderAll();
 
@@ -169,33 +191,50 @@ function useData(locationIDs, data) {
 				}else if (locationIDs.every((item) => !item.active || item == location)) locationIDs.forEach((item) => item.active = true);
 				else location.active = false;
 			}
-			// .reduce(
-			// (p, v) => {
-			// 	if (v.locationID == i) p.total += parseInt(v.spend);
-			// 	return p;
-			// }, (p, v) => {
-			// 	if (v.locationID == i) p.total -= parseInt(v.spend);
-			// 	return p;
-			// }, () => {
-			// 	return {total: 0}
-			// });
-        	
-   //      	chart.group(spendPerMonthAtID)
-   //      	.valueAccessor((d) => parseInt(d.value.total))
-        	
-        	filterDim.filter(null);
-        	filterDim.filter((d) => locationIDs[d].active);
-   			chart.redraw();
 
-        	locationIDs.forEach((location) => {
+			locationIDs.forEach((location) => {
         		if (location.active) location.marker.setOptions({'opacity': 1});
         		else location.marker.setOptions({'opacity': 0.5});
         	});
+
+			let spendAtID = chart.dimension().group().reduce(
+			(p, v) => {
+				if (locationIDs[v.locationID].active) p.total += parseInt(v.spend);
+				return p;
+			}, (p, v) => {
+				if (locationIDs[v.locationID].active) p.total -= parseInt(v.spend);
+				return p;
+			}, () => {
+				return {total: 0}
+			});
+        	
+        	chart.group(spendAtID)
+        	.valueAccessor((d) => parseInt(d.value.total))
+        	
+        	//filterDim.filter(null);
+        	//filterDim.filter((d) => locationIDs[d].active);
+   			chart.redraw();
+
+   			selectionDim = ndx.dimension((d) => {
+				if(locationIDs[d.locationID] && locationIDs[d.locationID].active) return "Selection";
+				else return "";
+			});
+   			spendGroup = selectionDim.group().reduceSum(dc.pluck("spend"));
+
+   			spendPie.dimension(selectionDim)
+   				.group(spendGroup);
+   			spendPie.redraw();
+
+   			transactionGroup = selectionDim.group().reduceCount(dc.pluck("spend"));
+
+   			transactionPie.dimension(selectionDim)
+   				.group(transactionGroup);
+   			transactionPie.redraw();
+
+        	
 			
         });
 	});
-
-   	
 
 	$(window).on("resize", () => {
 		if (!debounce) {
@@ -206,12 +245,16 @@ function useData(locationIDs, data) {
 				if ($(window).innerWidth() >= 768) {
 					chart.width($("#line-graph").parent().innerWidth())
 						.height(Math.min($("#line-graph").parent().innerWidth() * 0.3, 300))
-						.transitionDuration(0);
+					let pieSize = $("#map").height() / 2.5;
+					spendPie.height(pieSize).width(pieSize);
+					transactionPie.height(pieSize).width(pieSize);
 				}else{
 					chart.width($("#line-graph").parent().innerWidth())
 						.height($("#line-graph").parent().innerWidth() * 0.5)
-						.transitionDuration(0)
 						.xAxis().ticks(6);
+						let pieSize = $("#spend-pie").parent().width() * 0.7;
+						spendPie.height(pieSize).width(pieSize);
+						transactionPie.height(pieSize).width(pieSize);
 				}
 				
 
