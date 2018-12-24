@@ -99,6 +99,15 @@ body {
 	pointer-events: none;
 }
 
+.pie .pie-label {
+	font-size: 40px;
+	transform: translateY(0.25em);
+}
+
+.pie h3 {
+	text-align: center;
+}
+
 @media (min-width: 768px) {
 	#map {
 		height: 40vw;

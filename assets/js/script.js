@@ -31,21 +31,21 @@ function initDashboard(data, locationIDs) {
 		let chartWidth = $("#line-graph").parent().innerWidth();
 		chart.width(chartWidth);
 
-		let pieSize = $("#spend-pie").parent().width() * 0.7;
+		let pieSize = $("#spend-pie").parent().parent().width() * 0.7;
 
 		if (deviceWidth >= 768) {
 			chart.height(Math.min(chartWidth * 0.3, 300))
 				.xAxis().ticks(12);
 			if (deviceWidth >= 992) {
 				pieSize = $("#map").height() / 2.5;
-			}else pieSize = $("#spend-pie").parent().width() * 0.4;
+			}else pieSize = $("#spend-pie").parent().parent().width() * 0.4;
 		}else{
 			chart.height(chartWidth * 0.5)
 				.xAxis().ticks(6);
 		}
 
-		spendPie.height(pieSize).width(pieSize);
-		transactionPie.height(pieSize).width(pieSize);
+		spendPie.height(pieSize).width(pieSize).innerRadius(pieSize * 0.25).externalLabels(-pieSize / 2);
+		transactionPie.height(pieSize).width(pieSize).innerRadius(pieSize * 0.25).externalLabels(-pieSize / 2);
 
 		dc.renderAll();
 	}
@@ -97,28 +97,53 @@ function initDashboard(data, locationIDs) {
 		.group(totalSpend)
 		.transitionDuration(500)
 		.x(d3.time.scale().domain([minDate, maxDate]))
-		.xAxisLabel("Month")
 		.yAxis().ticks(4);
 
 	//Create 2 pie charts to show proportion of spend and transactions attributed to the current selection
-	//All values are currently selected, so group them all under "Selection"
+	//All values are currently selected, so group them all together for now.
 
 	let selectionDim = ndx.dimension((d) => {
 		if(locationIDs[d.locationID].active) return "Selection";
 	});
 
 	let spendGroup = selectionDim.group().reduceSum(dc.pluck("spend"));
+	let spendTotal = selectionDim.groupAll().reduceSum(dc.pluck("spend"));
 	let transactionGroup = selectionDim.group().reduceCount(dc.pluck("spend"));
+	let transactionTotal = selectionDim.groupAll().reduceCount(dc.pluck("spend"));
 
 	spendPie.dimension(selectionDim)
-		.group(spendGroup);
+		.group(spendGroup)
+		.innerRadius(50)
+		.externalLabels(-100)
+		.minAngleForLabel(0)
+		//Always show label for Selection only, calculated as its percentage of total, move it to the centre of the pie
+		.label((d) => {
+			if (d.key == "Selection") {
+				let percentage = Math.floor(d.value / spendTotal.value() * 100);
+				if (percentage < 1) percentage = "<1";
+				return `${percentage}%`;
+			}else return "";
+		});
 
 	transactionPie.dimension(selectionDim)
-		.group(transactionGroup);
+		.group(transactionGroup)
+		.innerRadius(50)
+		.externalLabels(-100)
+		.minAngleForLabel(0)
+		//Always show label for Selection only, calculated as its percentage of total, move it to the centre of the pie
+		.label((d) => {
+			if (d.key == "Selection") {
+				let percentage = Math.floor(d.value / transactionTotal.value() * 100);
+				if (percentage < 1) percentage = "<1";
+				return `${percentage}%`;
+			}else return "";
+		});
 
 	$("#loading_status").text("Drawing charts.");
 
     resizeCharts();
+
+    //Sort this mess out...
 
     $("#loading_status").text("Adding map markers.");
 	locationIDs.forEach((location, i) => {
@@ -142,6 +167,11 @@ function initDashboard(data, locationIDs) {
         		else location.marker.setOptions({'opacity': 0.5});
         	});
 
+        	//Can't filter, as that filters the results from the pie charts as well, so they always show 100%
+			//Using a fake group instead
+			//filterDim.filter(null);
+        	//filterDim.filter((d) => locationIDs[d].active);
+
 			let spendAtID = chart.dimension().group().reduce(
 			(p, v) => {
 				if (locationIDs[v.locationID].active) p.total += parseInt(v.spend);
@@ -154,10 +184,8 @@ function initDashboard(data, locationIDs) {
 			});
         	
         	chart.group(spendAtID)
-        	.valueAccessor((d) => parseInt(d.value.total))
-        	
-        	//filterDim.filter(null);
-        	//filterDim.filter((d) => locationIDs[d].active);
+        	.valueAccessor((d) => d.value.total)
+
    			chart.redraw();
 
    			selectionDim.dispose();
@@ -166,6 +194,7 @@ function initDashboard(data, locationIDs) {
 				if(locationIDs[d.locationID] && locationIDs[d.locationID].active) return "Selection";
 				else return "";
 			});
+
    			spendGroup = selectionDim.group().reduceSum(dc.pluck("spend"));
 
    			spendPie.dimension(selectionDim)
