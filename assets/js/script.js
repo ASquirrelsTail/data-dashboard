@@ -1,5 +1,3 @@
-
-
 $(() => {
 	$("#loading_status").text("Loading test-data.csv.");
 
@@ -19,9 +17,6 @@ $(() => {
 		.then((results) => {
 			return initDashboard(results[0], results[1]);
 		});	
-
-// let uniquePostcodes = getUniquePostcodes(clientData)
-// 		getLatLngFromPostcodes(uniquePostcodes, clientData, assignLatLngIDs, null);
 });
 
 function initDashboard(data, locationIDs) {
@@ -48,6 +43,70 @@ function initDashboard(data, locationIDs) {
 		transactionPie.height(pieSize).width(pieSize).innerRadius(pieSize * 0.25).externalLabels(-pieSize / 2);
 
 		dc.renderAll();
+	}
+
+	function filterByActiveMarkers() {
+		//Filter and update the data in the charts to reflect current map selection
+	   	//Can't use dimension filters, as they filter the results from the pie charts as well, so they always show 100%
+		//filterDim.filter(null);
+       	//filterDim.filter((d) => markers[d].active);
+
+      	//Filtering results using a custom acumulator instead.
+
+		let spendAtID = chart.dimension().group().reduce(
+		(p, v) => {
+			if (markers[v.locationID].active) p.total += parseInt(v.spend);
+			return p;
+		}, (p, v) => {
+			if (markers[v.locationID].active) p.total -= parseInt(v.spend);
+			return p;
+		}, () => {
+			return {total: 0}
+		});
+       	
+       	chart.group(spendAtID)
+       		.valueAccessor((d) => d.value.total)
+			.redraw();
+
+   		selectionDim.dispose();
+
+   		selectionDim = ndx.dimension((d) => {
+			if(markers[d.locationID] && markers[d.locationID].active) return "Selection";
+			else return "";
+		});
+
+   		spendGroup = selectionDim.group().reduceSum(dc.pluck("spend"));
+
+   		spendPie.dimension(selectionDim)
+   			.group(spendGroup)
+   			.redraw();
+
+   		transactionGroup = selectionDim.group().reduceCount(dc.pluck("spend"));
+
+   		transactionPie.dimension(selectionDim)
+   			.group(transactionGroup)
+   			.redraw();	
+	}
+
+	function redrawClusters(cluster) {
+
+		if (cluster) {
+			if (cluster.getMarkers().find((item) => item.active)) $(cluster.clusterIcon_.div_).css("opacity", "1");
+			else $(cluster.clusterIcon_.div_).css("opacity", "0.5");
+		}else markerCluster.clusters_.forEach((cluster) => {
+			if (cluster.getMarkers().find((item) => item.active)) $(cluster.clusterIcon_.div_).css("opacity", "1");
+			else $(cluster.clusterIcon_.div_).css("opacity", "0.5");
+		});
+		
+	}
+
+	function redrawMarkers() {
+		markers.forEach((item) => {
+        	if (item.active) item.setOptions({'opacity': 1});
+        	else item.setOptions({'opacity': 0.5});
+        });
+
+        redrawClusters();
 	}
 
 	$("#loading_status").text("Loading Google Maps."); //Init Google Maps
@@ -117,6 +176,7 @@ function initDashboard(data, locationIDs) {
 		.externalLabels(-100)
 		.minAngleForLabel(0)
 		//Always show label for Selection only, calculated as its percentage of total, move it to the centre of the pie
+		//https://stackoverflow.com/questions/53033715/bar-chart-dc-js-show-percentage
 		.label((d) => {
 			if (d.key == "Selection") {
 				let percentage = Math.floor(d.value / spendTotal.value() * 100);
@@ -143,71 +203,54 @@ function initDashboard(data, locationIDs) {
 
     resizeCharts();
 
-    //Sort this mess out...
+    //Add map markers to array
+    markers = [];
 
     $("#loading_status").text("Adding map markers.");
 	locationIDs.forEach((location, i) => {
-		location.marker = new google.maps.Marker({position: {lat: location.lat, lng: location.lng}, map: map});
-		location.active = true;
-		location.marker.addListener('click', () => {
+		let newMarker = new google.maps.Marker({position: {lat: location.lat, lng: location.lng}, title: location.postcode, map: map});
+		newMarker.active = true; //Extend the marker object with active property
+		markers.push(newMarker);
+	});
 
-			if (!location.active) {
-				location.active = true;
-			}else{
-				
-				if (locationIDs.every((item) => item.active)) {
-					locationIDs.forEach((item) => item.active = false);
-					location.active = true;
-				}else if (locationIDs.every((item) => !item.active || item == location)) locationIDs.forEach((item) => item.active = true);
-				else location.active = false;
-			}
+	markers.forEach((marker) =>{
+		marker.addListener("click", function() {
+			
+			if (!this.active) this.active = true; //If the clicked marker was inactive, make it active
+			else if (markers.every((item) => item.active)) { //If all markers were active, make them all inactive, except this one
+					markers.forEach((item) => item.active = false);
+					this.active = true;
+			}else if (markers.find((item) => item.active && item != this)) this.active = false; //If at least some of the other markers are active, make this one inactive
+			else markers.forEach((item) => item.active = true); //Otherwise this is the only active marker, so set them all to active
 
-			locationIDs.forEach((location) => {
-        		if (location.active) location.marker.setOptions({'opacity': 1});
-        		else location.marker.setOptions({'opacity': 0.5});
-        	});
+        	filterByActiveMarkers();
 
-        	//Can't filter, as that filters the results from the pie charts as well, so they always show 100%
-			//Using a fake group instead
-			//filterDim.filter(null);
-        	//filterDim.filter((d) => locationIDs[d].active);
-
-			let spendAtID = chart.dimension().group().reduce(
-			(p, v) => {
-				if (locationIDs[v.locationID].active) p.total += parseInt(v.spend);
-				return p;
-			}, (p, v) => {
-				if (locationIDs[v.locationID].active) p.total -= parseInt(v.spend);
-				return p;
-			}, () => {
-				return {total: 0}
-			});
-        	
-        	chart.group(spendAtID)
-        	.valueAccessor((d) => d.value.total)
-
-   			chart.redraw();
-
-   			selectionDim.dispose();
-
-   			selectionDim = ndx.dimension((d) => {
-				if(locationIDs[d.locationID] && locationIDs[d.locationID].active) return "Selection";
-				else return "";
-			});
-
-   			spendGroup = selectionDim.group().reduceSum(dc.pluck("spend"));
-
-   			spendPie.dimension(selectionDim)
-   				.group(spendGroup);
-   			spendPie.redraw();
-
-   			transactionGroup = selectionDim.group().reduceCount(dc.pluck("spend"));
-
-   			transactionPie.dimension(selectionDim)
-   				.group(transactionGroup);
-   			transactionPie.redraw();	
+        	redrawMarkers();
         });
 	});
+
+	let markerCluster = new MarkerClusterer(map, markers,
+            {imagePath: "https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m", zoomOnClick: false});
+
+	map.addListener("clusterclick", (cluster) =>{
+		clusterMarkers = cluster.getMarkers()
+
+		if (clusterMarkers.every((item) => !item.active)) clusterMarkers.forEach((item) => item.active = true); //If all, or some of the markers in the cluster are inactive, make them all active
+		else if (clusterMarkers.find((item) => !item.active)) clusterMarkers.forEach((item) => item.active = true);
+		else if (markers.every((item) => item.active)) { //If all the markers are active, make them all inactive except these ones
+			markers.forEach((item) => item.active = false);
+			clusterMarkers.forEach((item) => item.active = true);
+		}else if (markers.find((item) => item.active && !clusterMarkers.includes(item))) clusterMarkers.forEach((item) => item.active = false);//If at least one marker outside the cluster is active, make the cluster inactive
+		else markers.forEach((item) => item.active = true); //Finally if all the markers are inactive, except these ones make them all active 
+
+		filterByActiveMarkers();
+
+		redrawMarkers();
+	});
+
+    //google.maps.event.trigger(this.map_, 'cluster_redraw', true); add this trigger somewhere???
+    map.addListener("cluster_redraw", redrawClusters);
+		
 
 	//Create listener to redraw charts onResize, debounce to 0.5s to avoid calling thousands of redraws
 
@@ -322,3 +365,21 @@ function assignLatLngIDs(postcodeData, data) {
 
 	return [data, locationIDs];
 }
+
+ClusterIcon.prototype.onAdd = function() {
+  this.div_ = document.createElement('DIV');
+  if (this.visible_) {
+    var pos = this.getPosFromLatLng_(this.center_);
+    this.div_.style.cssText = this.createCss(pos);
+    this.div_.innerHTML = this.sums_.text;
+    google.maps.event.trigger(this.map_, 'cluster_redraw', this.cluster_);
+  }
+
+  var panes = this.getPanes();
+  panes.overlayMouseTarget.appendChild(this.div_);
+
+  var that = this;
+  google.maps.event.addDomListener(this.div_, 'click', function() {
+    that.triggerClusterClick();
+  });
+};

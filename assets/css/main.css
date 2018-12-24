@@ -95,6 +95,9 @@ body {
 .pie {
 	margin: 30px;
 	cursor: default;
+}
+
+.pie svg {
 	/*https://stackoverflow.com/questions/33764555/how-to-disable-click-event-on-rowchart-in-dc-js?rq=1*/
 	pointer-events: none;
 }
