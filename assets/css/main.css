@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css?family=Open+Sans');
 
+
 body {
 	margin: 0;
 	font-family: 'Open Sans', sans-serif;
@@ -154,6 +155,7 @@ body {
 	margin: 25px;
 	font-weight: 600;
 	font-size: 1.2em;
+	color: white;
 	background-color: #e74c3c;
 	border-color: #e77152;
 	transition: background-color 0.5s;

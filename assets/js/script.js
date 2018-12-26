@@ -82,12 +82,14 @@ function initDashboard(data, locationIDs) {
 		});
 
    		spendGroup = selectionDim.group().reduceSum(dc.pluck("spend"));
+   		spendTotal = selectionDim.groupAll().reduceSum(dc.pluck("spend"));
 
    		spendPie.dimension(selectionDim)
    			.group(spendGroup)
    			.redraw();
 
    		transactionGroup = selectionDim.group().reduceCount(dc.pluck("spend"));
+   		transactionTotal = selectionDim.groupAll().reduceCount(dc.pluck("spend"));
 
    		transactionPie.dimension(selectionDim)
    			.group(transactionGroup)
@@ -111,14 +113,16 @@ function initDashboard(data, locationIDs) {
 		if (exclude) topSpenders.splice(exclude, 1);
 		else if (topSpenders.length > 3) topSpenders.pop();
 
-		let theRest = topSpendersGroup.size() - topSpenders.length - 1;
+		let theRest = topSpendersGroup.size() - topSpenders.length;
+		if (topSpendersGroup.all().find((item) => item.key == "!EXCLUDE!")) theRest -= 1;
 
-		let html = `Selection: <span title="£${topSpenders[0].value}">${topSpenders[0].key}</span>`;
-		if (topSpenders[1]) html += `, <span title="£${topSpenders[1].value}">${topSpenders[1].key}</span>`;
-		if (theRest > 0 && topSpenders[2]) {
+		let html = "";
+		if (topSpenders[0] && topSpenders[0].value > 0) html += `Selection: <span title="£${topSpenders[0].value}">${topSpenders[0].key}</span>`;
+		if (topSpenders[1] && topSpenders[1].value > 0) html += `, <span title="£${topSpenders[1].value}">${topSpenders[1].key}</span>`;
+		if (theRest > 0 && topSpenders[2] && topSpenders[2].value > 0) {
 			html += `, <span title="£${topSpenders[2].value}">${topSpenders[2].key}</span> and ${theRest} other`;
 			if (theRest > 1) html += "s";
-		}else if (topSpenders[2]) html += ` and <span title="£${topSpenders[2].value}">${topSpenders[2].key}</span>`;
+		}else if (topSpenders[2] && topSpenders[2].value > 0) html += ` and <span title="£${topSpenders[2].value}">${topSpenders[2].key}</span>`;
 
 		$("#top-spenders").html(html);
 		if (markers.find((item) => !item.active)) $("#clear-selection").fadeIn(300);
@@ -146,6 +150,38 @@ function initDashboard(data, locationIDs) {
         });
 
         markerCluster.clusters_.forEach(redrawCluster);
+	}
+
+	function resetDateInputs() {
+		$("#start-date").val(minDateString).attr("min", minDateString).attr("max", maxDateString);
+		$("#end-date").val(maxDateString).attr("min", minDateString).attr("max", maxDateString);
+	}
+
+	function changeDateFilter() {
+		let newMinDate = new Date($("#start-date").val());
+		let newMaxDate = new Date($("#end-date").val());
+
+		$("#start-date").attr("max", newMaxDate.toISOString().split("T")[0]);
+		$("#end-date").attr("min", newMinDate.toISOString().split("T")[0]);
+		dateFilterDim.filter(null);
+       	dateFilterDim.filter(dc.filters.RangedFilter(newMinDate, newMaxDate));
+       	chart.x(d3.time.scale().domain([newMinDate, newMaxDate]))
+       	chart.rescale();
+
+       	markerSpend = locationDim.group().reduceSum(dc.pluck("spend")).all();
+
+       	markerCluster.removeMarkers(markers);
+       	markers.forEach((item, i) => {
+       		if (markerSpend[i].value < 1) {
+       			item.setVisible(false);
+       			item.active = false;
+       		}else if (item.getMap() == null) {
+       			item.setVisible(true);
+       			markerCluster.addMarker(item);
+       		}
+       	});
+       	
+       	filterByActiveMarkers();
 	}
 
 	//Initialise Google Maps
@@ -255,9 +291,16 @@ function initDashboard(data, locationIDs) {
 	let minDate = dateDim.bottom(1)[0].date;
 	let maxDate = dateDim.top(1)[0].date;
 
+	let dateFilterDim = ndx.dimension(dc.pluck("date")); //Create a new dimension for filtering, as filtering the current one doesn't filter that chart
+	let locationDim = ndx.dimension(dc.pluck("locationID")); //Create a new dimesion for tracking which markers are in the current filter
+
+	let minDateString = minDate.toISOString().split("T")[0];
+	let maxDateString = maxDate.toISOString().split("T")[0];
+
+	resetDateInputs();
+
 	chart.margins({top: 15, right: 50, left: 70, bottom: 50})
 		.brushOn(false)
-		//.elasticX(true)
 		.transitionDuration(500)
 		.x(d3.time.scale().domain([minDate, maxDate]))
 		.yAxis().ticks(4).tickFormat((v) => {
@@ -269,11 +312,13 @@ function initDashboard(data, locationIDs) {
 		dc.lineChart(chart)
 			.dimension(dateDim)
 			.group(totalSpend)
+			.interpolate("basis")
 			.colors("#3498db")
 			.transitionDuration(500),
 		dc.lineChart(chart)
 			.dimension(dateDim)
 			.group(totalSpend)
+			.interpolate("basis")
 			.colors("#e74c3c")
 			.transitionDuration(500)
 	]);
@@ -333,6 +378,8 @@ function initDashboard(data, locationIDs) {
 
     resizeCharts();
 
+    markerCluster.fitMapToMarkers(); //Use markerClusterer built in function to show all markers on map
+
     let clearControl = $(document.createElement("div")).css("z-index", "1000");
     let clearControlButton = $(document.createElement("button")).addClass("btn").attr("id", "clear-selection").text("Reset selection").hide();
     clearControl.append(clearControlButton);
@@ -348,6 +395,11 @@ function initDashboard(data, locationIDs) {
 		filterByActiveMarkers();
 		redrawMarkers();
     }); //.hide(0)
+
+    //Create listener for date changes
+
+    $("#start-date").on("blur", changeDateFilter);
+    $("#end-date").on("blur", changeDateFilter);
 
 	//Create listener to redraw charts onResize, debounce to 0.5s to avoid calling thousands of redraws
 
@@ -379,6 +431,8 @@ function initDashboard(data, locationIDs) {
 
 //Returns an array of unique postcodes from the data set
 function getUniquePostcodes(data) {
+	$("#loading_status").text("Getting postcodes from data.");
+
 	let postcodes = [];
 
 	if (data) data.forEach((item) => {
@@ -393,6 +447,8 @@ function getUniquePostcodes(data) {
 
 //Returns a list of verified postcodes and latitudes and longitudes from postcodes.io api
 function getLatLngFromPostcodes(postcodeList) {
+	$("#loading_status").text("Retrieving postcode info deom postcodes.io.");
+
 	return new Promise((resolve, reject) => {
 		let results = [];
 		let noPostcodesToCheck = postcodeList.length;
@@ -438,7 +494,7 @@ function getLatLngFromPostcodes(postcodeList) {
 function assignLatLngIDs(postcodeData, data) {
 	let locationIDs = [];
 
-	$("#loading_status").text("Assigning location IDs");
+	$("#loading_status").text("Assigning location IDs.");
 
 	postcodeData.forEach((resultData) => {
 		data.forEach((item) => {
