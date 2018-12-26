@@ -21,6 +21,7 @@ $(() => {
 
 function initDashboard(data, locationIDs) {
 
+	//Resize charts based on current device width and other elements
 	function resizeCharts() {
 		let deviceWidth = $(window).innerWidth();
 		let chartWidth = $("#line-graph").parent().innerWidth();
@@ -29,11 +30,14 @@ function initDashboard(data, locationIDs) {
 		let pieSize = $("#spend-pie").parent().parent().width() * 0.7;
 
 		if (deviceWidth >= 768) {
-			chart.height(Math.min(chartWidth * 0.3, 300))
-				.xAxis().ticks(12);
+			chart.height(Math.min(chartWidth * 0.3, 300));
 			if (deviceWidth >= 992) {
+				chart.xAxis().ticks(12);
 				pieSize = $("#map").height() / 2.5;
-			}else pieSize = $("#spend-pie").parent().parent().width() * 0.4;
+			}else{
+				chart.xAxis().ticks(8);
+				pieSize = $("#spend-pie").parent().parent().width() * 0.4;
+			}
 		}else{
 			chart.height(chartWidth * 0.5)
 				.xAxis().ticks(6);
@@ -45,15 +49,16 @@ function initDashboard(data, locationIDs) {
 		dc.renderAll();
 	}
 
+	//Filter and update the data in the charts to reflect current map selection
 	function filterByActiveMarkers() {
-		//Filter and update the data in the charts to reflect current map selection
 	   	//Can't use dimension filters, as they filter the results from the pie charts as well, so they always show 100%
 		//filterDim.filter(null);
        	//filterDim.filter((d) => markers[d].active);
 
       	//Filtering results using a custom acumulator instead.
+      	let selectionChart = chart.children()[1];
 
-		let spendAtID = chart.dimension().group().reduce(
+		let spendAtID = selectionChart.dimension().group().reduce(
 		(p, v) => {
 			if (markers[v.locationID].active) p.total += parseInt(v.spend);
 			return p;
@@ -63,10 +68,11 @@ function initDashboard(data, locationIDs) {
 		}, () => {
 			return {total: 0}
 		});
-       	
-       	chart.group(spendAtID)
-       		.valueAccessor((d) => d.value.total)
-			.redraw();
+       		
+       	selectionChart.group(spendAtID)
+       		.valueAccessor((d) => d.value.total);
+
+		chart.redraw();
 
    		selectionDim.dispose();
 
@@ -85,31 +91,65 @@ function initDashboard(data, locationIDs) {
 
    		transactionPie.dimension(selectionDim)
    			.group(transactionGroup)
-   			.redraw();	
-	}
+   			.redraw();
 
-	function redrawClusters(cluster) {
+   		nameDim.dispose();
 
-		if (cluster) {
-			if (cluster.getMarkers().find((item) => item.active)) $(cluster.clusterIcon_.div_).css("opacity", "1");
-			else $(cluster.clusterIcon_.div_).css("opacity", "0.5");
-		}else markerCluster.clusters_.forEach((cluster) => {
-			if (cluster.getMarkers().find((item) => item.active)) $(cluster.clusterIcon_.div_).css("opacity", "1");
-			else $(cluster.clusterIcon_.div_).css("opacity", "0.5");
+   		nameDim = ndx.dimension((d) => {
+			if(markers[d.locationID].active) return d.name;
+			else return "!EXCLUDE!";
 		});
-		
+
+		topSpendersGroup = nameDim.group().reduceSum(dc.pluck("spend"));
+
+   		showTopSpenders();
 	}
 
+	function showTopSpenders() {
+		let topSpenders = topSpendersGroup.top(4);
+		let exclude = topSpenders.find((item) => item.key == "!EXCLUDE!");
+		if (exclude) topSpenders.splice(exclude, 1);
+		else if (topSpenders.length > 3) topSpenders.pop();
+
+		let theRest = topSpendersGroup.size() - topSpenders.length - 1;
+
+		let html = `Selection: <span title="£${topSpenders[0].value}">${topSpenders[0].key}</span>`;
+		if (topSpenders[1]) html += `, <span title="£${topSpenders[1].value}">${topSpenders[1].key}</span>`;
+		if (theRest > 0 && topSpenders[2]) {
+			html += `, <span title="£${topSpenders[2].value}">${topSpenders[2].key}</span> and ${theRest} other`;
+			if (theRest > 1) html += "s";
+		}else if (topSpenders[2]) html += ` and <span title="£${topSpenders[2].value}">${topSpenders[2].key}</span>`;
+
+		$("#top-spenders").html(html);
+		if (markers.find((item) => !item.active)) $("#clear-selection").fadeIn(300);
+		else $("#clear-selection").fadeOut(300);
+	}
+
+	//Update cluster marker appearance based on whether the markers it contains are part of the active selection or not
+	function redrawCluster(cluster) {
+		totalCount = cluster.getMarkers().length;
+		activeCount = cluster.getMarkers().filter((item) => item.active).length;
+		backgroundImage = "cluster-active";
+
+		if (activeCount == 0) backgroundImage = "cluster-inactive";
+		else if (activeCount == 1) backgroundImage += "1";
+		else if (activeCount < totalCount) backgroundImage += "2";
+
+		$(cluster.clusterIcon_.div_).css({"background-image": `url("${iconPath}${backgroundImage}.png")`, transform: "translateY(-24px)"});
+	}
+
+	//Update individual marker appearance based on whether they are part of the active selection or not
 	function redrawMarkers() {
 		markers.forEach((item) => {
-        	if (item.active) item.setOptions({'opacity': 1});
-        	else item.setOptions({'opacity': 0.5});
+        	if (item.active) item.setOptions({icon: iconPath + "marker-active.png"});
+        	else item.setOptions({icon: iconPath + "marker-inactive.png"});
         });
 
-        redrawClusters();
+        markerCluster.clusters_.forEach(redrawCluster);
 	}
 
-	$("#loading_status").text("Loading Google Maps."); //Init Google Maps
+	//Initialise Google Maps
+	$("#loading_status").text("Loading Google Maps.");
 
 	let map = new google.maps.Map(document.getElementById("map"), {
       	zoom: 6,
@@ -121,89 +161,15 @@ function initDashboard(data, locationIDs) {
   		scaleControl: false,
   		streetViewControl: false,
   		rotateControl: false,
-  		fullscreenControl: false
+  		fullscreenControl: false,
+  		styles: [
+  			{featureType: "poi", stylers: [{visibility: "off"}]}, 
+  			{featureType: "transit", stylers: [{visibility: "off"}]}]
     });
 
-    $("#loading_status").text("Preparing charts."); //Set up charts
+    iconPath = "assets/images/";
 
-	let chart = dc.lineChart("#line-graph");
-
-	let spendPie = dc.pieChart("#spend-pie");
-	let transactionPie = dc.pieChart("#transaction-pie");
-
-	let ndx = crossfilter(data);
-
-	let parseDate = d3.time.format("%d/%m/%y").parse;
-
-	data.forEach((d) => {
-		d.date = parseDate(d.date);
-		d.spend = parseInt(d.spend);
-	});
-
-	//Plot line chart of spend against time
-
-	let dateDim = ndx.dimension(dc.pluck("date"));
-
-	let totalSpend = dateDim.group().reduceSum(dc.pluck("spend"));
-
-	let minDate = dateDim.bottom(1)[0].date;
-	let maxDate = dateDim.top(1)[0].date;
-
-	chart.margins({top: 15, right: 50, left: 50, bottom: 50})
-		.brushOn(false)
-		//.elasticX(true)
-		.dimension(dateDim)
-		.group(totalSpend)
-		.transitionDuration(500)
-		.x(d3.time.scale().domain([minDate, maxDate]))
-		.yAxis().ticks(4);
-
-	//Create 2 pie charts to show proportion of spend and transactions attributed to the current selection
-	//All values are currently selected, so group them all together for now.
-
-	let selectionDim = ndx.dimension((d) => {
-		if(locationIDs[d.locationID].active) return "Selection";
-	});
-
-	let spendGroup = selectionDim.group().reduceSum(dc.pluck("spend"));
-	let spendTotal = selectionDim.groupAll().reduceSum(dc.pluck("spend"));
-	let transactionGroup = selectionDim.group().reduceCount(dc.pluck("spend"));
-	let transactionTotal = selectionDim.groupAll().reduceCount(dc.pluck("spend"));
-
-	spendPie.dimension(selectionDim)
-		.group(spendGroup)
-		.innerRadius(50)
-		.externalLabels(-100)
-		.minAngleForLabel(0)
-		//Always show label for Selection only, calculated as its percentage of total, move it to the centre of the pie
-		//https://stackoverflow.com/questions/53033715/bar-chart-dc-js-show-percentage
-		.label((d) => {
-			if (d.key == "Selection") {
-				let percentage = Math.floor(d.value / spendTotal.value() * 100);
-				if (percentage < 1) percentage = "<1";
-				return `${percentage}%`;
-			}else return "";
-		});
-
-	transactionPie.dimension(selectionDim)
-		.group(transactionGroup)
-		.innerRadius(50)
-		.externalLabels(-100)
-		.minAngleForLabel(0)
-		//Always show label for Selection only, calculated as its percentage of total, move it to the centre of the pie
-		.label((d) => {
-			if (d.key == "Selection") {
-				let percentage = Math.floor(d.value / transactionTotal.value() * 100);
-				if (percentage < 1) percentage = "<1";
-				return `${percentage}%`;
-			}else return "";
-		});
-
-	$("#loading_status").text("Drawing charts.");
-
-    resizeCharts();
-
-    //Add map markers to array
+    //Create map markers from the location data, and add to array
     markers = [];
 
     $("#loading_status").text("Adding map markers.");
@@ -213,6 +179,7 @@ function initDashboard(data, locationIDs) {
 		markers.push(newMarker);
 	});
 
+	//Add listener for marker clicks, filter and redraw
 	markers.forEach((marker) =>{
 		marker.addListener("click", function() {
 			
@@ -229,9 +196,20 @@ function initDashboard(data, locationIDs) {
         });
 	});
 
+	//Initilise marker clusterer from MarkerClusterer API for Google Maps using array of markers
 	let markerCluster = new MarkerClusterer(map, markers,
-            {imagePath: "https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m", zoomOnClick: false});
+            {averageCenter: true, 
+            	zoomOnClick: false,
+            	styles: [{
+ 					url: iconPath + "cluster-active.png",
+					height: 48,
+					width: 55,
+					anchor: [10, 0],
+					textColor: "#000",
+					textSize: 15,
+            	}]});
 
+	//Add listener for cluster clicks, filter and redraw
 	map.addListener("clusterclick", (cluster) =>{
 		clusterMarkers = cluster.getMarkers()
 
@@ -248,9 +226,128 @@ function initDashboard(data, locationIDs) {
 		redrawMarkers();
 	});
 
-    //google.maps.event.trigger(this.map_, 'cluster_redraw', true); add this trigger somewhere???
-    map.addListener("cluster_redraw", redrawClusters);
-		
+    //Listen for changes to clusters so they can be redrawn as appropriate
+    map.addListener("cluster_redraw", redrawCluster);
+
+    //Set up charts
+    $("#loading_status").text("Preparing charts.");
+
+	let chart = dc.compositeChart("#line-graph");
+
+	let spendPie = dc.pieChart("#spend-pie");
+	let transactionPie = dc.pieChart("#transaction-pie");
+
+	let ndx = crossfilter(data);
+
+	let parseDate = d3.time.format("%d/%m/%y").parse;
+
+	data.forEach((d) => {
+		d.date = parseDate(d.date);
+		d.spend = parseInt(d.spend);
+	});
+
+	//Plot composite line chart of spend against time
+
+	let dateDim = ndx.dimension(dc.pluck("date"));
+
+	let totalSpend = dateDim.group().reduceSum(dc.pluck("spend"));
+
+	let minDate = dateDim.bottom(1)[0].date;
+	let maxDate = dateDim.top(1)[0].date;
+
+	chart.margins({top: 15, right: 50, left: 70, bottom: 50})
+		.brushOn(false)
+		//.elasticX(true)
+		.transitionDuration(500)
+		.x(d3.time.scale().domain([minDate, maxDate]))
+		.yAxis().ticks(4).tickFormat((v) => {
+			if (v >= 1000) v = (v/1000).toFixed(1);
+			return "£" + v;
+		});
+
+	chart.compose([
+		dc.lineChart(chart)
+			.dimension(dateDim)
+			.group(totalSpend)
+			.colors("#3498db")
+			.transitionDuration(500),
+		dc.lineChart(chart)
+			.dimension(dateDim)
+			.group(totalSpend)
+			.colors("#e74c3c")
+			.transitionDuration(500)
+	]);
+
+	//Create 2 pie charts to show proportion of spend and transactions attributed to the current selection
+	//All values are currently selected, so group them all together for now.
+
+	let selectionDim = ndx.dimension((d) => {
+		if(locationIDs[d.locationID].active) return "Selection";
+	});
+
+	let spendGroup = selectionDim.group().reduceSum(dc.pluck("spend"));
+	let spendTotal = selectionDim.groupAll().reduceSum(dc.pluck("spend")); //Use total grouping for calculating percentage
+	let transactionGroup = selectionDim.group().reduceCount(dc.pluck("spend"));
+	let transactionTotal = selectionDim.groupAll().reduceCount(dc.pluck("spend")); //Use total grouping for calculating percentage
+
+	spendPie.dimension(selectionDim)
+		.group(spendGroup)
+		.innerRadius(50)
+		.externalLabels(-100)
+		.minAngleForLabel(0)
+		.colors(d3.scale.ordinal().range(["#e74c3c", "#3498db"]))
+		//Always show label for Selection only, calculated as its percentage of total, move it to the centre of the pie
+		.label((d) => {
+			if (d.key == "Selection") {
+				let percentage = Math.floor(d.value / spendTotal.value() * 100); //https://stackoverflow.com/questions/53033715/bar-chart-dc-js-show-percentage
+				if (percentage < 1) percentage = "<1";
+				return `${percentage}%`;
+			}else return "";
+		});
+
+	transactionPie.dimension(selectionDim)
+		.group(transactionGroup)
+		.innerRadius(50)
+		.externalLabels(-100)
+		.minAngleForLabel(0)
+		.colors(d3.scale.ordinal().range(["#e74c3c", "#3498db"]))
+		//Always show label for Selection only, calculated as its percentage of total, move it to the centre of the pie
+		.label((d) => {
+			if (d.key == "Selection") {
+				let percentage = Math.floor(d.value / transactionTotal.value() * 100);
+				if (percentage < 1) percentage = "<1";
+				return `${percentage}%`;
+			}else return "";
+		});
+
+	let nameDim = ndx.dimension((d) => {
+		if(markers[d.locationID].active) return d.name;
+		else return "!EXCLUDE!";
+	});
+
+	let topSpendersGroup = nameDim.group().reduceSum(dc.pluck("spend"));
+
+	showTopSpenders()
+
+	$("#loading_status").text("Drawing charts.");
+
+    resizeCharts();
+
+    let clearControl = $(document.createElement("div")).css("z-index", "1000");
+    let clearControlButton = $(document.createElement("button")).addClass("btn").attr("id", "clear-selection").text("Reset selection").hide();
+    clearControl.append(clearControlButton);
+
+    clearControl[0].index = 1;
+
+    map.controls[google.maps.ControlPosition.TOP_RIGHT].push(clearControl[0]);
+
+    //Hide selection reset button and attach event listener for it
+    clearControlButton.on("click", () => {
+		markers.forEach((item) => item.active = true); //Set all markers to active
+
+		filterByActiveMarkers();
+		redrawMarkers();
+    }); //.hide(0)
 
 	//Create listener to redraw charts onResize, debounce to 0.5s to avoid calling thousands of redraws
 
@@ -269,6 +366,7 @@ function initDashboard(data, locationIDs) {
 				resizeCharts();
 
 				chart.transitionDuration(500);
+				chart.children()[1].transitionDuration(500)
 				spendPie.transitionDuration(500);
 				transactionPie.transitionDuration(500);
 			}, 500);
@@ -313,11 +411,9 @@ function getLatLngFromPostcodes(postcodeList) {
 		}
 
 		function processRequestResult() {
-			//console.log(this.readyState, this.status);
 			if (this.readyState == 4) {
 				if(this.status == 200) {
 					let response = JSON.parse(this.responseText);
-					//console.log(response);
 					results = results.concat(response.result);
 
 					$("#loading_status").text(`Checked ${results.length} out of ${noPostcodesToCheck} postcodes.`);
@@ -361,18 +457,18 @@ function assignLatLngIDs(postcodeData, data) {
 			}
 		});
 	});
-	console.log("Data prepared: ", locationIDs, data);
 
 	return [data, locationIDs];
 }
 
+//Redeclare ClusterIcon onAdd function prototype to trigger cluster redraw event whenever clusters are changed. (For instance when the zoom level changes, or markers are added or removed)
 ClusterIcon.prototype.onAdd = function() {
   this.div_ = document.createElement('DIV');
   if (this.visible_) {
     var pos = this.getPosFromLatLng_(this.center_);
     this.div_.style.cssText = this.createCss(pos);
     this.div_.innerHTML = this.sums_.text;
-    google.maps.event.trigger(this.map_, 'cluster_redraw', this.cluster_);
+    google.maps.event.trigger(this.map_, 'cluster_redraw', this.cluster_); //Here
   }
 
   var panes = this.getPanes();

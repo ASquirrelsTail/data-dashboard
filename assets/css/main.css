@@ -1,5 +1,8 @@
+@import url('https://fonts.googleapis.com/css?family=Open+Sans');
+
 body {
 	margin: 0;
+	font-family: 'Open Sans', sans-serif;
 }
 
 .modal {
@@ -76,6 +79,28 @@ body {
 	height: 40vh;
 }
 
+.map-wrapper {
+	width: 100%;
+}
+
+#top-spenders {
+	margin: 10px;
+}
+
+.dc-chart path.line {
+	stroke-width: 3.5px;
+}
+
+.dc-chart .axis path, .dc-chart .axis line {
+	stroke-width: 3px;
+}
+
+.dc-chart .axis text {
+	font-size: 0.7rem;
+	font-weight: 700;
+	text-transform: uppercase;
+}
+
 .graph-wrapper {
 	width: 100%;
 	padding: 0;
@@ -95,6 +120,7 @@ body {
 .pie {
 	margin: 30px;
 	cursor: default;
+	text-align: center;
 }
 
 .pie svg {
@@ -102,13 +128,39 @@ body {
 	pointer-events: none;
 }
 
+.pie path {
+	stroke: white;
+	stroke-width: 4px;
+}
+
 .pie .pie-label {
-	font-size: 40px;
+	font-size: 30px;
+	font-weight: 900;
 	transform: translateY(0.25em);
 }
 
-.pie h3 {
+.pie h2 {
 	text-align: center;
+}
+
+.btn {
+	padding: 8px;
+	border: 3px solid;
+	border-radius: 12px;
+	cursor: pointer;
+}
+
+#clear-selection {
+	margin: 25px;
+	font-weight: 600;
+	font-size: 1.2em;
+	background-color: #e74c3c;
+	border-color: #e77152;
+	transition: background-color 0.5s;
+}
+
+#clear-selection:hover {
+	background-color: #e77152;
 }
 
 @media (min-width: 768px) {
@@ -122,8 +174,11 @@ body {
 		flex-direction: column;
 	}
 
-	#map {
+	.map-wrapper {
 		width: 60vw;
+	}
+
+	#map {
 		height: 50vh;
 	}
 
@@ -135,5 +190,10 @@ body {
 		margin-top: 0px;
 		padding-left: 40px;
 		padding-right: 40px;
+	}
+
+	.pie svg {
+		margin-left: 10px;
+		margin-right: 10px;
 	}
 }
