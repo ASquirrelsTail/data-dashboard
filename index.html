@@ -1,54 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<meta charset="UTF-8">
-	<title>Document</title>
-
-	<link rel="stylesheet" href="assets/css/dc.css" type="text/css">
-	<link rel="stylesheet" href="assets/css/main.css" type="text/css">
-
-	<script src="assets/js/d3.js" type="text/javascript"></script>
-	<script src="assets/js/crossfilter.js" type="text/javascript"></script>
-	<script src="assets/js/dc.js" type="text/javascript"></script>
-	<script src="assets/js/jquery-3.3.1.js" type="text/javascript"></script>
-
-	<!-- Hide development API key from git commits - replace with production key for deployment-->
-	<script src="assets/js/gm-dev-api-key.js" type="text/javascript"></script>
-	
-	<script src="assets/js/markerclusterer.js" type="text/javascript"></script>
-	<script src="assets/js/script.js" type="text/javascript"></script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <link rel="stylesheet" href="assets/css/dc.css" type="text/css">
+    <link rel="stylesheet" href="assets/css/jquery-ui.css" type="text/css">
+    <link rel="stylesheet" href="assets/css/main.css" type="text/css">
+    <script src="assets/js/d3.js" type="text/javascript"></script>
+    <script src="assets/js/crossfilter.js" type="text/javascript"></script>
+    <script src="assets/js/dc.js" type="text/javascript"></script>
+    <script src="assets/js/jquery-3.3.1.js" type="text/javascript"></script>
+    <script src="assets/js/jquery-ui.js" type="text/javascript"></script>
+    <!-- Hide development API key from git commits - replace with production key for deployment-->
+    <script src="assets/js/gm-dev-api-key.js" type="text/javascript"></script>
+    <script src="assets/js/markerclusterer.js" type="text/javascript"></script>
+    <script src="assets/js/script.js" type="text/javascript"></script>
 </head>
+
 <body>
-	<h1 class="logo">Bloodhound</h1>
-	<input type="date" name="startdate" id="start-date" />
-	<input type="date" name="enddate" id="end-date" />
-	<div class="modal-cover">
-		<div class="modal">
-			<div><span class="loading-spinner"></span></div>
-			<p id="loading_text">Loading</p>
-			<p id="loading_status"></p>
-		</div>
-	</div>
-	<div class="graph-wrapper">
-		<div id="line-graph"></div>
-	</div>
-	<div class="flex-container">
-		<div class="map-wrapper">
-			<div id="top-spenders"></div>
-			<div id="map"></div>
-		</div>
-		<div class="pies-wrapper">
-			<div class="pie">
-				<div id="spend-pie"></div>
-				<h2>of total spend</h2>
-			</div>
-			<div class="pie">
-				<div id="transaction-pie"></div>
-				<h2>of all transactions</h2>
-			</div>
-		</div>
-	</div>
+    <div class="modal-cover">
+        <div class="modal">
+            <div><span class="loading-spinner"></span></div>
+            <p id="loading_text">Loading</p>
+            <p id="loading_status"></p>
+        </div>
+    </div>
+    <header>
+        <h1 class="logo">Bloodhound</h1>
+    </header>
+    <section>
+        <div class="graph-wrapper">
+            <div id="line-graph"></div>
+        </div>
+        <div class="graph-info">
+            Date range: <input type="text" name="startdate" id="start-date" class="date-input" /> to
+            <input type="text" name="enddate" id="end-date" class="date-input" />
+            <div id="top-spenders"></div>
+        </div>
+        <div class="flex-container">
+            <div class="map-wrapper">
+                <div id="map"></div>
+            </div>
+            <div class="pies-wrapper">
+                <div class="pie">
+                    <div id="spend-pie"></div>
+                    <h2>of total spend</h2>
+                </div>
+                <div class="pie">
+                    <div id="transaction-pie"></div>
+                    <h2>of all transactions</h2>
+                </div>
+            </div>
+        </div>
+    </section>
 </body>
+
 </html>

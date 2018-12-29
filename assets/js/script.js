@@ -50,7 +50,7 @@ function initDashboard(data, locationIDs) {
 	}
 
 	//Filter and update the data in the charts to reflect current map selection
-	function filterByActiveMarkers() {
+	function filterByActiveMarkers(init) {
 	   	//Can't use dimension filters, as they filter the results from the pie charts as well, so they always show 100%
 		//filterDim.filter(null);
        	//filterDim.filter((d) => markers[d].active);
@@ -58,12 +58,24 @@ function initDashboard(data, locationIDs) {
       	//Filtering results using a custom acumulator instead.
       	let selectionChart = chart.children()[1];
 
-		let spendAtID = selectionChart.dimension().group().reduce(
+      	if (!init) { //If not initial setup, dispose of groups and dims that are to be replaced 
+      		selectionChart.dimension().group().dispose();
+      		selectionDim.dispose();
+      		spendAtID.dispose();
+      		spendGroup.dispose();
+			spendTotal.dispose();
+			transactionGroup.dispose();
+   			transactionTotal.dispose();
+   			nameDim.dispose();
+   			topSpendersGroup.dispose();
+      	}
+
+		spendAtID = selectionChart.dimension().group().reduce(
 		(p, v) => {
-			if (markers[v.locationID].active) p.total += parseInt(v.spend);
+			if (markers[v.locationID] && markers[v.locationID].active && markers[v.locationID].getVisible()) p.total += v.spend;
 			return p;
 		}, (p, v) => {
-			if (markers[v.locationID].active) p.total -= parseInt(v.spend);
+			if (markers[v.locationID] && markers[v.locationID].active && markers[v.locationID].getVisible()) p.total -= v.spend;
 			return p;
 		}, () => {
 			return {total: 0}
@@ -72,59 +84,82 @@ function initDashboard(data, locationIDs) {
        	selectionChart.group(spendAtID)
        		.valueAccessor((d) => d.value.total);
 
-		chart.redraw();
-
-   		selectionDim.dispose();
-
    		selectionDim = ndx.dimension((d) => {
-			if(markers[d.locationID] && markers[d.locationID].active) return "Selection";
+			if(markers[d.locationID] && markers[d.locationID].active && markers[d.locationID].getVisible()) return "Selection";
 			else return "";
 		});
 
    		spendGroup = selectionDim.group().reduceSum(dc.pluck("spend"));
+   		spendGroupCleaned = {
+   			all: () => {
+   				let cleanGroup = spendGroup.all();
+   				if (!cleanGroup.find((item) => item.key == "")) cleanGroup.push({key: "", value: 0});
+   				return cleanGroup; //Fake group to fix graphical clitch from empty group after filtering dates
+   			}
+   		}
    		spendTotal = selectionDim.groupAll().reduceSum(dc.pluck("spend"));
 
    		spendPie.dimension(selectionDim)
-   			.group(spendGroup)
-   			.redraw();
+   			.group(spendGroupCleaned);
+
 
    		transactionGroup = selectionDim.group().reduceCount(dc.pluck("spend"));
+   		transactionGroupCleaned = {
+   			all: () => {
+   				let cleanGroup = transactionGroup.all();
+   				if (!cleanGroup.find((item) => item.key == "")) cleanGroup.push({key: "", value: 0});
+   				return cleanGroup; //Fake group to fix graphical clitch from empty group after filtering dates
+   			}
+   		}
    		transactionTotal = selectionDim.groupAll().reduceCount(dc.pluck("spend"));
 
    		transactionPie.dimension(selectionDim)
-   			.group(transactionGroup)
-   			.redraw();
-
-   		nameDim.dispose();
+   			.group(transactionGroupCleaned);
 
    		nameDim = ndx.dimension((d) => {
-			if(markers[d.locationID].active) return d.name;
+			if(markers[d.locationID] && markers[d.locationID].active && markers[d.locationID].getVisible() && d.spend > 0) return d.name;
 			else return "!EXCLUDE!";
 		});
 
 		topSpendersGroup = nameDim.group().reduceSum(dc.pluck("spend"));
+
+		if(!init) {
+			chart.redraw();
+			spendPie.redraw();
+			transactionPie.redraw();
+		}
 
    		showTopSpenders();
 	}
 
 	function showTopSpenders() {
 		let topSpenders = topSpendersGroup.top(4);
-		let exclude = topSpenders.find((item) => item.key == "!EXCLUDE!");
-		if (exclude) topSpenders.splice(exclude, 1);
-		else if (topSpenders.length > 3) topSpenders.pop();
+		topSpenders = topSpenders.filter((item) => item.key != "!EXCLUDE!");
+		if (topSpenders.length > 3) topSpenders.pop();
 
 		let theRest = topSpendersGroup.size() - topSpenders.length;
 		if (topSpendersGroup.all().find((item) => item.key == "!EXCLUDE!")) theRest -= 1;
 
-		let html = "";
-		if (topSpenders[0] && topSpenders[0].value > 0) html += `Selection: <span title="£${topSpenders[0].value}">${topSpenders[0].key}</span>`;
-		if (topSpenders[1] && topSpenders[1].value > 0) html += `, <span title="£${topSpenders[1].value}">${topSpenders[1].key}</span>`;
-		if (theRest > 0 && topSpenders[2] && topSpenders[2].value > 0) {
-			html += `, <span title="£${topSpenders[2].value}">${topSpenders[2].key}</span> and ${theRest} other`;
-			if (theRest > 1) html += "s";
-		}else if (topSpenders[2] && topSpenders[2].value > 0) html += ` and <span title="£${topSpenders[2].value}">${topSpenders[2].key}</span>`;
+		let topSpendersDiv = $("#top-spenders").text("Selection: ");
 
-		$("#top-spenders").html(html);
+		let html = "";
+		if (topSpenders[0] && topSpenders[0].value > 0) topSpendersDiv.append($("<span>").attr("title", `£${topSpenders[0].value}`).text(topSpenders[0].key));
+		if (topSpenders[1] && topSpenders[1].value > 0) {
+			if (topSpenders.length > 2) topSpendersDiv.append(document.createTextNode(", "));
+			else topSpendersDiv.append(document.createTextNode(" and "));
+			topSpendersDiv.append($("<span>").attr("title", `£${topSpenders[1].value}`).text(topSpenders[1].key));
+		}
+		if (topSpenders[2] && topSpenders[2].value > 0) {
+			if (theRest > 0) topSpendersDiv.append(document.createTextNode(", "));
+			else topSpendersDiv.append(document.createTextNode(" and "));
+			topSpendersDiv.append($("<span>").attr("title", `£${topSpenders[2].value}`).text(topSpenders[2].key));
+			if (theRest > 0) {
+				let plural = "";
+				if (theRest > 1) plural = "s";
+				topSpendersDiv.append(document.createTextNode(` and ${theRest} other${plural}`));
+			}
+		}
+
 		if (markers.find((item) => !item.active)) $("#clear-selection").fadeIn(300);
 		else $("#clear-selection").fadeOut(300);
 	}
@@ -153,36 +188,73 @@ function initDashboard(data, locationIDs) {
 	}
 
 	function resetDateInputs() {
-		$("#start-date").val(minDateString).attr("min", minDateString).attr("max", maxDateString);
-		$("#end-date").val(maxDateString).attr("min", minDateString).attr("max", maxDateString);
+
+		$("#start-date").datepicker("option", "minDate", minDate).datepicker("option", "maxDate", maxDate).datepicker('setDate', minDate);
+		$("#end-date").datepicker("option", "minDate", minDate).datepicker("option", "maxDate", maxDate).datepicker('setDate', maxDate);
 	}
 
-	function changeDateFilter() {
-		let newMinDate = new Date($("#start-date").val());
-		let newMaxDate = new Date($("#end-date").val());
+	function hideUnusedMarkers() {
+		markerSpend = locationDim.group().reduceSum(dc.pluck("spend")).all();
 
-		$("#start-date").attr("max", newMaxDate.toISOString().split("T")[0]);
-		$("#end-date").attr("min", newMinDate.toISOString().split("T")[0]);
-		dateFilterDim.filter(null);
-       	dateFilterDim.filter(dc.filters.RangedFilter(newMinDate, newMaxDate));
-       	chart.x(d3.time.scale().domain([newMinDate, newMaxDate]))
-       	chart.rescale();
-
-       	markerSpend = locationDim.group().reduceSum(dc.pluck("spend")).all();
+       	allMarkersSelected = true;
+       	if (markers.find((item) => !item.active && item.getVisible())) allMarkersSelected = false;
 
        	markerCluster.removeMarkers(markers);
        	markers.forEach((item, i) => {
        		if (markerSpend[i].value < 1) {
        			item.setVisible(false);
-       			item.active = false;
+       			item.active = true;
        		}else if (item.getMap() == null) {
-       			item.setVisible(true);
+       			if (!item.getVisible()) {
+       				item.setVisible(true);
+       				item.active = allMarkersSelected; //If all selected markers are active, any markers added back in will also be active
+       			}
        			markerCluster.addMarker(item);
        		}
        	});
        	
+       	if (!markers.find((item) => item.active && item.getVisible())) markers.forEach((item) => item.active = true); //If no visible markers are active after filtering, make all markers active
+       	
        	filterByActiveMarkers();
+
+       	redrawMarkers();
 	}
+
+	function changeDateFilter() {
+
+		let startDate = $("#start-date").val().split("/");
+		let endDate = $("#end-date").val().split("/");
+
+		let newMinDate = new Date(`${startDate[2]}-${startDate[1]}-${startDate[0]}`);
+		let newMaxDate = new Date(`${endDate[2]}-${endDate[1]}-${endDate[0]}`);
+
+		if (newMinDate == "Invalid Date") {
+			newMinDate = minDate;
+			$("#start-date").datepicker('setDate', minDate);
+		}
+		if (newMaxDate == "Invalid Date") {
+			newMaxDate = maxDate;
+			$("#end-date").datepicker('setDate', maxDate);
+		}
+
+		$("#start-date").datepicker("option", "maxDate", newMaxDate);
+		$("#end-date").datepicker("option", "minDate", newMinDate);
+
+		dateFilterDim.filter(null);
+       	dateFilterDim.filter(dc.filters.RangedFilter(newMinDate, newMaxDate));
+       	chart.focus([newMinDate, newMaxDate]);
+
+       	hideUnusedMarkers();
+	}
+
+	// function changeMinSpendFilter() {
+	// 	let newMinSpend = parseInt($("#min-spend").val());
+
+	// 	spendFilterDim.filter(null);
+ //       	spendFilterDim.filter(dc.filters.RangedFilter(newMinSpend, maxSpend + 1)); //filter for min spend
+
+ //       	hideUnusedMarkers();
+	// }
 
 	//Initialise Google Maps
 	$("#loading_status").text("Loading Google Maps.");
@@ -220,10 +292,10 @@ function initDashboard(data, locationIDs) {
 		marker.addListener("click", function() {
 			
 			if (!this.active) this.active = true; //If the clicked marker was inactive, make it active
-			else if (markers.every((item) => item.active)) { //If all markers were active, make them all inactive, except this one
-					markers.forEach((item) => item.active = false);
+			else if (markers.every((item) => item.active || !item.getVisible())) { //If all markers were active, make them all inactive, except this one
+					markers.forEach((item) => {if (item.getVisible()) item.active = false});
 					this.active = true;
-			}else if (markers.find((item) => item.active && item != this)) this.active = false; //If at least some of the other markers are active, make this one inactive
+			}else if (markers.find((item) => (item.active && item.getVisible()) && item != this)) this.active = false; //If at least some of the other markers are active, make this one inactive
 			else markers.forEach((item) => item.active = true); //Otherwise this is the only active marker, so set them all to active
 
         	filterByActiveMarkers();
@@ -249,12 +321,13 @@ function initDashboard(data, locationIDs) {
 	map.addListener("clusterclick", (cluster) =>{
 		clusterMarkers = cluster.getMarkers()
 
-		if (clusterMarkers.every((item) => !item.active)) clusterMarkers.forEach((item) => item.active = true); //If all, or some of the markers in the cluster are inactive, make them all active
-		else if (clusterMarkers.find((item) => !item.active)) clusterMarkers.forEach((item) => item.active = true);
-		else if (markers.every((item) => item.active)) { //If all the markers are active, make them all inactive except these ones
-			markers.forEach((item) => item.active = false);
+		// if (clusterMarkers.every((item) => !item.active)) clusterMarkers.forEach((item) => item.active = true); //If all, or some of the markers in the cluster are inactive, make them all active
+		// else 
+		if (clusterMarkers.find((item) => !item.active)) clusterMarkers.forEach((item) => item.active = true);
+		else if (markers.every((item) => item.active || !item.getVisible())) { //If all the markers are active, make them all inactive except these ones
+			markers.forEach((item) => {if (item.getVisible()) item.active = false});
 			clusterMarkers.forEach((item) => item.active = true);
-		}else if (markers.find((item) => item.active && !clusterMarkers.includes(item))) clusterMarkers.forEach((item) => item.active = false);//If at least one marker outside the cluster is active, make the cluster inactive
+		}else if (markers.find((item) => (item.active && item.getVisible()) && !clusterMarkers.includes(item))) clusterMarkers.forEach((item) => item.active = false);//If at least one marker outside the cluster is active, make the cluster inactive
 		else markers.forEach((item) => item.active = true); //Finally if all the markers are inactive, except these ones make them all active 
 
 		filterByActiveMarkers();
@@ -291,17 +364,21 @@ function initDashboard(data, locationIDs) {
 	let minDate = dateDim.bottom(1)[0].date;
 	let maxDate = dateDim.top(1)[0].date;
 
-	let dateFilterDim = ndx.dimension(dc.pluck("date")); //Create a new dimension for filtering, as filtering the current one doesn't filter that chart
+	let spendAtID;
+
+	let dateFilterDim = ndx.dimension(dc.pluck("date")); //Create new dimensions for filtering, as filtering the current one doesn't filter that chart
+	// let spendFilterDim = ndx.dimension(dc.pluck("spend"));
+	// let maxSpend = spendFilterDim.top(1)[0].spend;
+	// console.log(maxSpend);
 	let locationDim = ndx.dimension(dc.pluck("locationID")); //Create a new dimesion for tracking which markers are in the current filter
 
-	let minDateString = minDate.toISOString().split("T")[0];
-	let maxDateString = maxDate.toISOString().split("T")[0];
-
-	resetDateInputs();
+	// let minDateString = minDate.toISOString().split("T")[0];
+	// let maxDateString = maxDate.toISOString().split("T")[0];
 
 	chart.margins({top: 15, right: 50, left: 70, bottom: 50})
 		.brushOn(false)
 		.transitionDuration(500)
+		.shareTitle(false)
 		.x(d3.time.scale().domain([minDate, maxDate]))
 		.yAxis().ticks(4).tickFormat((v) => {
 			if (v >= 1000) v = (v/1000).toFixed(1);
@@ -312,13 +389,16 @@ function initDashboard(data, locationIDs) {
 		dc.lineChart(chart)
 			.dimension(dateDim)
 			.group(totalSpend)
-			.interpolate("basis")
+			.title((d) => `${d.key.toDateString()}: £${d.value}`)
+			//.interpolate("basis")
+			.evadeDomainFilter(true)
 			.colors("#3498db")
 			.transitionDuration(500),
 		dc.lineChart(chart)
 			.dimension(dateDim)
-			.group(totalSpend)
-			.interpolate("basis")
+			.title((d) => `${d.key.toDateString()}: £${d.value.total}`)
+			//.interpolate("basis")
+			.evadeDomainFilter(true)
 			.colors("#e74c3c")
 			.transitionDuration(500)
 	]);
@@ -326,18 +406,15 @@ function initDashboard(data, locationIDs) {
 	//Create 2 pie charts to show proportion of spend and transactions attributed to the current selection
 	//All values are currently selected, so group them all together for now.
 
-	let selectionDim = ndx.dimension((d) => {
-		if(locationIDs[d.locationID].active) return "Selection";
-	});
+	//Declare variables for various goups, to be assigned in filterByActiveMarkers()
+	let selectionDim;
 
-	let spendGroup = selectionDim.group().reduceSum(dc.pluck("spend"));
-	let spendTotal = selectionDim.groupAll().reduceSum(dc.pluck("spend")); //Use total grouping for calculating percentage
-	let transactionGroup = selectionDim.group().reduceCount(dc.pluck("spend"));
-	let transactionTotal = selectionDim.groupAll().reduceCount(dc.pluck("spend")); //Use total grouping for calculating percentage
+	let spendGroup;
+	let spendTotal;//Use total grouping for calculating percentage
+	let transactionGroup;
+	let transactionTotal;//Use total grouping for calculating percentage
 
-	spendPie.dimension(selectionDim)
-		.group(spendGroup)
-		.innerRadius(50)
+	spendPie.innerRadius(50)
 		.externalLabels(-100)
 		.minAngleForLabel(0)
 		.colors(d3.scale.ordinal().range(["#e74c3c", "#3498db"]))
@@ -348,11 +425,13 @@ function initDashboard(data, locationIDs) {
 				if (percentage < 1) percentage = "<1";
 				return `${percentage}%`;
 			}else return "";
+		})
+		.title((d) => { 
+   			if (d.key == "Selection") return `Selection: £${d.value}`;
+			else return `Total: £${spendTotal.value()}`;
 		});
 
-	transactionPie.dimension(selectionDim)
-		.group(transactionGroup)
-		.innerRadius(50)
+	transactionPie.innerRadius(50)
 		.externalLabels(-100)
 		.minAngleForLabel(0)
 		.colors(d3.scale.ordinal().range(["#e74c3c", "#3498db"]))
@@ -363,16 +442,23 @@ function initDashboard(data, locationIDs) {
 				if (percentage < 1) percentage = "<1";
 				return `${percentage}%`;
 			}else return "";
+		})
+		.title((d) => { 
+   			if (d.key == "Selection") {
+   				let plural = "s";
+   				if (d.value <= 1) plural = "";
+   				return `Selection: ${d.value} transaction${plural}`;
+			}else return `Total: ${transactionTotal.value()} transactions`;
 		});
 
-	let nameDim = ndx.dimension((d) => {
-		if(markers[d.locationID].active) return d.name;
-		else return "!EXCLUDE!";
-	});
+	spendPie.onClick = () => false; //Remove onClick from pie charts, so they can't trigger filter
+	transactionPie.onClick = () => false;
 
-	let topSpendersGroup = nameDim.group().reduceSum(dc.pluck("spend"));
+	let nameDim;
 
-	showTopSpenders()
+	let topSpendersGroup;
+
+	filterByActiveMarkers(true);
 
 	$("#loading_status").text("Drawing charts.");
 
@@ -396,10 +482,19 @@ function initDashboard(data, locationIDs) {
 		redrawMarkers();
     }); //.hide(0)
 
-    //Create listener for date changes
+    //Set up datepicker
 
-    $("#start-date").on("blur", changeDateFilter);
-    $("#end-date").on("blur", changeDateFilter);
+    $("#start-date").datepicker({defaultDate: minDate, dateFormat: "dd/mm/yy"});
+    $("#end-date").datepicker({defaultDate: maxDate, dateFormat: "dd/mm/yy"});
+
+ //    $("#start-date").datepicker("option", "dateFormat", "dd-mm-yy");
+	// $("#start-date").datepicker("option", "dateFormat", "dd-mm-yy");
+
+    resetDateInputs();
+
+    $("#start-date").on("change", changeDateFilter);
+    $("#end-date").on("change", changeDateFilter);
+    // $("#min-spend").on("blur", changeMinSpendFilter);
 
 	//Create listener to redraw charts onResize, debounce to 0.5s to avoid calling thousands of redraws
 
