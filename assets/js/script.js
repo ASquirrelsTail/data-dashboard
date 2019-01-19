@@ -19,6 +19,7 @@ $(() => {
 		});	
 });
 
+
 function initDashboard(data, locationIDs) {
 
 	//Resize charts based on current device width and other elements
@@ -346,14 +347,14 @@ function initDashboard(data, locationIDs) {
 	let spendPie = dc.pieChart("#spend-pie");
 	let transactionPie = dc.pieChart("#transaction-pie");
 
-	let ndx = crossfilter(data);
-
 	let parseDate = d3.time.format("%d/%m/%y").parse;
 
 	data.forEach((d) => {
 		d.date = parseDate(d.date);
 		d.spend = parseInt(d.spend);
 	});
+
+	let ndx = crossfilter(data);
 
 	//Plot composite line chart of spend against time
 
@@ -375,7 +376,7 @@ function initDashboard(data, locationIDs) {
 	// let minDateString = minDate.toISOString().split("T")[0];
 	// let maxDateString = maxDate.toISOString().split("T")[0];
 
-	chart.margins({top: 15, right: 50, left: 70, bottom: 50})
+	chart.margins({top: 15, right: 50, left: 70, bottom: 30})
 		.brushOn(false)
 		.transitionDuration(500)
 		.shareTitle(false)
@@ -467,7 +468,7 @@ function initDashboard(data, locationIDs) {
     markerCluster.fitMapToMarkers(); //Use markerClusterer built in function to show all markers on map
 
     let clearControl = $(document.createElement("div")).css("z-index", "1000");
-    let clearControlButton = $(document.createElement("button")).addClass("btn").attr("id", "clear-selection").text("Reset selection").hide();
+    let clearControlButton = $(document.createElement("button")).addClass("btn").attr("id", "clear-selection").text("Select All").hide();
     clearControl.append(clearControlButton);
 
     clearControl[0].index = 1;
@@ -481,6 +482,14 @@ function initDashboard(data, locationIDs) {
 		filterByActiveMarkers();
 		redrawMarkers();
     }); //.hide(0)
+
+    $("#help").on("click", () => {
+    	$("#help-modal").fadeIn();
+    });
+
+    $("#help-modal .modal-cover").on("click", () => {
+    	$("#help-modal").fadeOut();
+    });
 
     //Set up datepicker
 
@@ -520,9 +529,10 @@ function initDashboard(data, locationIDs) {
 		}
 	});
 
-	$(".modal-cover").fadeOut();
+	$("#loading-modal").fadeOut();
 
 }
+
 
 //Returns an array of unique postcodes from the data set
 function getUniquePostcodes(data) {
@@ -540,9 +550,10 @@ function getUniquePostcodes(data) {
 	return postcodes;
 }
 
+
 //Returns a list of verified postcodes and latitudes and longitudes from postcodes.io api
 function getLatLngFromPostcodes(postcodeList) {
-	$("#loading_status").text("Retrieving postcode info deom postcodes.io.");
+	$("#loading_status").text("Retrieving postcode info from postcodes.io.");
 
 	return new Promise((resolve, reject) => {
 		let results = [];
@@ -584,6 +595,7 @@ function getLatLngFromPostcodes(postcodeList) {
 	});	
 }
 
+
 //Removes duplicate values and returns a list of unique locations containing postcode, latitude and longitude
 //Assigns verified postcodes to dataset, along with the ID of the corresponding location
 function assignLatLngIDs(postcodeData, data) {
@@ -611,6 +623,7 @@ function assignLatLngIDs(postcodeData, data) {
 
 	return [data, locationIDs];
 }
+
 
 //Redeclare ClusterIcon onAdd function prototype to trigger cluster redraw event whenever clusters are changed. (For instance when the zoom level changes, or markers are added or removed)
 ClusterIcon.prototype.onAdd = function() {

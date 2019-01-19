@@ -5,22 +5,39 @@ body {
 	margin: 0;
 	padding: 0;
 	font-family: 'Open Sans', sans-serif;
-	font-size: 24px;
+	font-size: 20px;
 }
 
 input {
-	font-size: 24px;
+	font-size: 18px;
 }
 
 header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
 	background-color: #e9e9e9;
-	margin: 20px;
+	margin: 10px;
 	padding: 20px;
 	border-radius: 30px;
 }
 
 .logo {
-	margin-top: 10px;
+	margin: 0px;
+}
+
+#help {
+	font-size: 20px;
+	font-weight: 700;
+	text-align: center;
+	background-color: white;
+	min-width: 30px;
+	cursor: pointer;
+}
+
+#help::before {
+	content: "?";
+	vertical-align: center;
 }
 
 .modal {
@@ -29,6 +46,7 @@ header {
 	top: 20vh;
 	width: 80vw;
 	left: 10vw;
+	z-index: 100;
 	background-color: white;
 	padding: 25px;
 	border-radius: 25px;
@@ -41,8 +59,12 @@ header {
 	left: 0;
 	width: 100vw;
 	height: 100vh;
-	z-index: 100;
+	z-index: 99;
 	background-color: rgba( 0, 0, 0, 0.5);
+}
+
+#help-modal {
+	display: none;
 }
 
 @keyframes dotdot {
@@ -92,17 +114,43 @@ header {
 	justify-content: center;
 }
 
-#map {
+.graph-wrapper {
 	width: 100%;
-	height: 40vh;
+	padding: 0;
+	position: relative;
+  	display: block;
+  	overflow-x: hidden;
 }
 
-.map-wrapper {
-	width: 100%;
+.graph-info {
+	margin: 10px;
+	display: flex;
+	flex-wrap: wrap;
 }
 
 #top-spenders {
-	margin: 10px;
+	order: 1;
+	width: 100%;
+}
+
+#top-spenders span {
+	cursor: default;
+}
+
+#dates {
+
+}
+
+.date-input {
+	width: 5.2em;
+	padding: 4px;
+	border: 1px solid grey;
+	border-radius: 8px;
+	cursor: pointer;
+}
+
+div.dc-chart {
+	float: none;
 }
 
 .dc-chart path.line {
@@ -119,12 +167,26 @@ header {
 	text-transform: uppercase;
 }
 
-.graph-wrapper {
+#map {
 	width: 100%;
-	padding: 0;
+	height: 40vh;
+	border-radius: none;
+}
+
+.map-wrapper {
+	width: 100%;
+}
+
+#top-spenders::before {
+	display: inline-block;
+	content: "";
+	width: 1.2em;
+	height: 1.2em;
+	margin-right: 10px;
+	background-color: #e74c3c;
+	border-radius: 0.2em;
 	position: relative;
-  	display: block;
-  	overflow-x: hidden;
+	top: 0.2em;
 }
 
 .pies-wrapper {
@@ -150,17 +212,13 @@ header {
 	font-size: 2em;
 	font-weight: 900;
 	transform: translateY(0.25em);
+	cursor: default;
+	pointer-events: none;
 }
 
 .pie h2 {
 	text-align: center;
-}
-
-.date-input {
-	width: 5.2em;
-	padding: 4px;
-	border: 1px solid grey;
-	border-radius: 8px;
+	margin: 0;
 }
 
 .ui-widget-content .ui-state-active {
@@ -180,7 +238,7 @@ header {
 
 .btn {
 	padding: 8px;
-	border: 3px solid;
+	border: 2px solid;
 	border-radius: 12px;
 	cursor: pointer;
 }
@@ -191,7 +249,7 @@ header {
 	font-size: 1.2em;
 	color: white;
 	background-color: #e74c3c;
-	border-color: #e77152;
+	border-color: white;
 	transition: background-color 0.5s;
 }
 
@@ -200,6 +258,18 @@ header {
 }
 
 @media (min-width: 768px) {
+	#help {
+		content: initial;
+	}
+
+	#help::before {
+		content: "Help";
+	}
+
+	.graph-info {
+		margin: 10px 50px;
+	}
+
 	#map {
 		height: 40vw;
 	}
@@ -214,6 +284,15 @@ header {
 }
 
 @media (min-width: 992px) {
+	.graph-info {
+		justify-content: space-between;
+	}
+
+	#top-spenders {
+		order: 0;
+		width: auto;
+	}
+
 	.container {
 		flex-direction: column;
 	}
@@ -224,6 +303,7 @@ header {
 
 	#map {
 		height: 50vh;
+		border-radius: 20px;
 	}
 
 	.pies-wrapper {
@@ -231,7 +311,7 @@ header {
 	}
 
 	.pie {
-		margin-top: 0px;
+		margin: 10px;
 		padding-left: 40px;
 		padding-right: 40px;
 	}
