@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
@@ -8,40 +7,50 @@
     <link rel="stylesheet" href="assets/css/dc.css" type="text/css">
     <link rel="stylesheet" href="assets/css/jquery-ui.css" type="text/css">
     <link rel="stylesheet" href="assets/css/main.css" type="text/css">
-    <script src="assets/js/d3.js" type="text/javascript"></script>
-    <script src="assets/js/crossfilter.js" type="text/javascript"></script>
-    <script src="assets/js/dc.js" type="text/javascript"></script>
-    <script src="assets/js/jquery-3.3.1.js" type="text/javascript"></script>
-    <script src="assets/js/jquery-ui.js" type="text/javascript"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDZ03qk_HFvL1LesDYSgF61l3V4T3kS3Sk" type="text/javascript"></script>
-    <script src="assets/js/markerclusterer.js" type="text/javascript"></script>
+    <script src="assets/js/libs/d3.js" type="text/javascript"></script>
+    <script src="assets/js/libs/crossfilter.js" type="text/javascript"></script>
+    <script src="assets/js/libs/dc.js" type="text/javascript"></script>
+    <script src="assets/js/libs/jquery-3.3.1.js" type="text/javascript"></script>
+    <script src="assets/js/libs/jquery-ui.js" type="text/javascript"></script>
+    <!-- Hide development API key from git commits - replace with production key for deployment-->
+    <script src="assets/js/gm-dev-api-key.js" type="text/javascript"></script>
+    <!-- <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDZ03qk_HFvL1LesDYSgF61l3V4T3kS3Sk" type="text/javascript"></script> -->
+    <script src="assets/js/libs/markerclusterer.js" type="text/javascript"></script>
     <script src="assets/js/script.js" type="text/javascript"></script>
 </head>
 
 <body>   
     <header>
-        <h1 class="logo">Bloodhound</h1>
+        <div class="logo">
+            <h1>Bloodhound</h1>
+            <h2>Sniff out your best customers!</h2>
+        </div>
         <div id="help" class="btn"></div>
     </header>
+    <!-- Modal showing loading information -->
     <div id="loading-modal">
         <div class="modal-cover"></div>
         <div class="modal">
             <div><span class="loading-spinner"></span></div>
             <p id="loading_text">Loading</p>
-            <p id="loading_status"></p>
+            <!-- #loading_status updates with information on what is currently loading -->
+            <p id="loading_status"></p> 
         </div>
     </div>
+    <!-- Modal showing help and information -->
     <section id="help-modal">
         <div class="modal-cover"></div>
         <div class="modal">
-            <h2>Help</h2>
+            <h3>Help</h3>
         </div>
     </section>
     <section>
         <div class="graph-wrapper">
+            <!-- #line-graph will be used to create a dc.js composite line chart -->
             <div id="line-graph"></div>
         </div>
         <div class="graph-info">
+            <!-- #top-spenders will be updated with the top spenders of the current selection -->
             <div id="top-spenders"></div>
             <div id="dates">
                 Date range: <input type="text" name="startdate" id="start-date" class="date-input" /> to <input type="text" name="enddate" id="end-date" class="date-input" />
@@ -49,9 +58,11 @@
         </div>
         <div class="flex-container">
             <div class="map-wrapper">
+                <!-- #map will be used by the Google Maps API to create a map -->
                 <div id="map"></div>
             </div>
             <div class="pies-wrapper">
+                <!-- #spend-pie and #transaction-pie will be used to create dc.js pie charts -->
                 <div class="pie">
                     <div id="spend-pie"></div>
                     <h2>of total spend</h2>
@@ -64,5 +75,4 @@
         </div>
     </section>
 </body>
-
 </html>

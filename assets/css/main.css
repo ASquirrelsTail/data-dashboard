@@ -22,8 +22,13 @@ header {
 	border-radius: 30px;
 }
 
-.logo {
+.logo h1 {
 	margin: 0px;
+}
+
+.logo h2 {
+	font-size: 1.2em;
+	margin: 0px 0px 0px 20px;
 }
 
 #help {

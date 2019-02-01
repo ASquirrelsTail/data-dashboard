@@ -339,6 +339,11 @@ function initDashboard(data, locationIDs) {
     //Listen for changes to clusters so they can be redrawn as appropriate
     map.addListener("cluster_redraw", redrawCluster);
 
+    //Listen for bound change, and reset double click to zoom
+    map.addListener("bounds_changed", () => {
+    	map.set("disableDoubleClickZoom", false);
+    });
+
     //Set up charts
     $("#loading_status").text("Preparing charts.");
 
@@ -505,7 +510,7 @@ function initDashboard(data, locationIDs) {
     $("#end-date").on("change", changeDateFilter);
     // $("#min-spend").on("blur", changeMinSpendFilter);
 
-	//Create listener to redraw charts onResize, debounce to 0.5s to avoid calling thousands of redraws
+	//Create listener to redraw charts onResize, debounce to 0.5s to avoid calling thousands of redraws 
 
 	let debounce = false;
 
@@ -639,7 +644,27 @@ ClusterIcon.prototype.onAdd = function() {
   panes.overlayMouseTarget.appendChild(this.div_);
 
   var that = this;
+
   google.maps.event.addDomListener(this.div_, 'click', function() {
     that.triggerClusterClick();
+  });
+
+  //Solution for clearing doubleclicks from https://github.com/google-map-react/google-map-react/issues/319
+
+  google.maps.event.addDomListener(this.div_, 'mouseover', function() {
+  	that.map_.set("disableDoubleClickZoom", true);
+  });
+
+  google.maps.event.addDomListener(this.div_, 'mouseout', function() {
+  	that.map_.set("disableDoubleClickZoom", false);
+  });
+
+  google.maps.event.addDomListener(this.div_, 'dblclick', function() {
+  	let newCenter = that.cluster_.getCenter();
+  	let newBounds = that.cluster_.getBounds();
+    that.map_.panTo(newCenter);
+    that.map_.fitBounds(newBounds);
+    console.log("doubleclick", newCenter, newBounds);
+    // that.map_.set("disableDoubleClickZoom", false);
   });
 };
