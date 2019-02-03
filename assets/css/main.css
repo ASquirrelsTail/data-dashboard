@@ -133,13 +133,40 @@ header {
 	flex-wrap: wrap;
 }
 
-#top-spenders {
+#key {
 	order: 1;
 	width: 100%;
 }
 
-#top-spenders span {
+.key-item {
+	padding-right: 1em;
+}
+
+.key-item span {
 	cursor: default;
+}
+
+.key-item::before {
+	display: inline-block;
+	content: "";
+	width: 1.2em;
+	height: 1.2em;
+	margin-right: 10px;
+	border-radius: 0.2em;
+	position: relative;
+	top: 0.2em;
+}
+
+#top-spenders::before {
+	background-color: #e74c3c;
+}
+
+#total-spend {
+	cursor: default;
+}
+
+#total-spend::before {
+	background-color: #3498db;
 }
 
 #dates {
@@ -180,18 +207,6 @@ div.dc-chart {
 
 .map-wrapper {
 	width: 100%;
-}
-
-#top-spenders::before {
-	display: inline-block;
-	content: "";
-	width: 1.2em;
-	height: 1.2em;
-	margin-right: 10px;
-	background-color: #e74c3c;
-	border-radius: 0.2em;
-	position: relative;
-	top: 0.2em;
 }
 
 .pies-wrapper {
@@ -293,7 +308,7 @@ div.dc-chart {
 		justify-content: space-between;
 	}
 
-	#top-spenders {
+	#key {
 		order: 0;
 		width: auto;
 	}

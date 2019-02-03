@@ -88,7 +88,9 @@ The Google Maps API key used in this project is restricted to the URL of its Git
 
 The dashboard does not function in Internet Explorer due to the use of JavaScript ES6 promises and arrow functions.
 
-The Google Maps API triggers click two click events and a double click event when the map is double clicked, resulting in marker clusters being rapidly selected/deselected when they are double clicked.
+The Google Maps API triggers two click events and a double click event when the map is double clicked, resulting in marker clusters being rapidly selected/deselected when they are double clicked.
+
+When the map is zoomed, an unselected marker is selected then the map is panned some marker clusters that are unselected occasionally appear to be selected, when they are not. This is to do with the markerclusterer drawing their defaults, but I can't figure out why, or why it only happens occasionally.
 
 ## Credits
 

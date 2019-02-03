@@ -143,7 +143,7 @@ function initDashboard(data, locationIDs) {
 
 		let topSpendersDiv = $("#top-spenders").text("Selection: ");
 
-		let html = "";
+		// let html = "";
 		if (topSpenders[0] && topSpenders[0].value > 0) topSpendersDiv.append($("<span>").attr("title", `£${topSpenders[0].value}`).text(topSpenders[0].key));
 		if (topSpenders[1] && topSpenders[1].value > 0) {
 			if (topSpenders.length > 2) topSpendersDiv.append(document.createTextNode(", "));
@@ -160,6 +160,8 @@ function initDashboard(data, locationIDs) {
 				topSpendersDiv.append(document.createTextNode(` and ${theRest} other${plural}`));
 			}
 		}
+
+		$("#total-spend").html(`<span title="£${spendTotal.value()}">Total</span>`);
 
 		if (markers.find((item) => !item.active)) $("#clear-selection").fadeIn(300);
 		else $("#clear-selection").fadeOut(300);
@@ -276,7 +278,7 @@ function initDashboard(data, locationIDs) {
   			{featureType: "transit", stylers: [{visibility: "off"}]}]
     });
 
-    iconPath = "assets/images/";
+    iconPath = "assets/images/b/";
 
     //Create map markers from the location data, and add to array
     markers = [];
