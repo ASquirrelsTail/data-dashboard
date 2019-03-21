@@ -32,7 +32,7 @@ Beth is the marketing manager for a mail order cosmetics company and wants to se
 
 Based on the goals and user stories I put together a quick wireframe to show the layout of the graphs and map. Although not primarily aimed at mobile devices the dashboard should be responsive and adjust its layout to fit, even if not all features are included.
 
-![alt text]( https://asquirrelstail.github.io/data-dashboard/pre-prod/wireframe.jpg "Wireframe")
+![alt text]( https://asquirrelstail.github.io/data-dashboard/pre-prod/wireframe.JPG "Wireframe")
 
 ### Visuals
 
@@ -76,7 +76,7 @@ It should look functional and appeal to people who have a job to get done.
 
 The site has been tested on a variety of devices, using different browsers and resolutions to ensure compatability and responsiveness.
 
-Automated testing was carried out using Jasmine, these tests can be run [here](https://asquirrelstail.github.io/data-dashboard/testing/). Due to the graphical nature of the dashboard the [test specs](https://github.com/ASquirrelsTail/data-dashboard/tree/master/testing/spec) mainly focus on ensuring user input is correctly validated and handled.s
+Automated testing was carried out using Jasmine, these tests can be run [here](https://asquirrelstail.github.io/data-dashboard/testing/). Due to the graphical nature of the dashboard the [test specs](https://github.com/ASquirrelsTail/data-dashboard/tree/master/testing/spec) mainly focus on ensuring user input is correctly validated and handled.
 
 ## Deployment
 
