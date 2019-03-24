@@ -2,82 +2,79 @@ const iconPath = "assets/images/b/";
 const selectionColor = "#e74c3c";
 const totalColor = "#3498db";
 
+
 $(() => {
     loadingStatus("Loading test-data.csv.");
     $.get("assets/data/test-data.csv")
      .then(initDashboard);
+
+    // Attach click events to show/hide the help modal
+    $("#help").on("click", () => {
+        $("#help-modal").fadeIn();
+    });
+
+    $("#help-modal .modal-cover").on("click", () => {
+        $("#help-modal").fadeOut();
+    });
 });
 
-// $(() => {
-// 	$("#loading_status").text("Loading test-data.csv.");
-
-// 	let clientData; 
-
-// 	$.get("assets/data/test-data.csv")
-// 		.then( (data) => {
-// 			$("#loading_status").text("Parsing data.");
-// 			clientData = d3.csv.parse(data)
-// 			return clientData;
-// 		})
-// 		.then(getUniquePostcodes)
-// 		.then(getLatLngFromPostcodes)
-// 		.then((postcodeData) => {
-// 			return assignLatLngIDs(postcodeData, clientData);
-// 		})
-// 		.then((results) => {
-// 			return initDashboard(clientData, results);
-// 		});	
-// });
 
 async function initDashboard(data) {
     loadingStatus("Parsing data.");
     data = d3.csv.parse(data);
-
+    
+    // Get postcodes from data, verify them and retrieve latitude and longditude from postcodes.io
     let postcodes = getUniquePostcodes(data);
     postcodes = await getLatLngFromPostcodes(postcodes);
     let locationIDs = assignLatLngIDs(postcodes, data);
-
+    
+    // Initialise google maps and add markers and cluster them
     map = initMap("map");
     markers = createLocationMarkers(locationIDs, map);
     markerCluster = createMarkerClusterer(markers, map);
 
-    console.log(data);
-
-    ndx = createNdx(data);
-    
-    //Declare variables for various goups, to be assigned in filterByActiveMarkers()
-    let minDate, maxDate;
-    let selectionDim; 
-
-    let spendGroup;
-    let spendTotal;
-    let transactionGroup;
-    let transactionTotal;
-
-    let nameDim;
-    let topSpendersGroup;
-
-    let spendAtID; // and this does need to be here
-
-    let chart = createCompositeChart("line-graph");
-    let spendPie = createSpendPie("spend-pie");
-    let transactionPie = createTransactionPie("transaction-pie");
-
-    let dateFilterDim = ndx.dimension(dc.pluck("date")); //Create new dimensions for filtering, as filtering dimensions in use doesn't filter that chart
-    let locationDim = ndx.dimension(dc.pluck("locationID")); //Create a new dimesion for tracking which markers are in the current filter
-
-    filterByActiveMarkers(true);
-
+    // When the selection changes on the map, filter the data by location, and redraw the map markers to show selection
     map.addListener("selectionchanged", () =>{
         filterByActiveMarkers();
         redrawMarkers();
     });
 
+    // When a cluster changes (either due to selection, or zoom level change) redraw it
     map.addListener("cluster_redraw", redrawCluster);
+
+    // Create a crossfilter object from the data
+    ndx = createNdx(data);
+    
+    //Declare variables for various goups, to be assigned in filterByActiveMarkers()
+    let minDate, maxDate; // Will contain min and max dates for the whole dataset
+    let selectionDim; // Dimension for currently selected locations
+
+    let spendGroup; // Will group spend by selection
+    let spendTotal; // Will contain total spend so percentages can be calculated
+    let transactionGroup; // Will group number of transactions by selection
+    let transactionTotal; // Will contain total transactions
+
+    let nameDim; // Dimension to hold the names of customers in the selection
+    let topSpendersGroup; // Group the customers by spend to get to spenders 
+
+    let spendAtID; // Group customer spend by location ID
+    
+    //Set up charts and pies
+    let chart = createCompositeChart("line-graph");
+    let spendPie = createSpendPie("spend-pie");
+    let transactionPie = createTransactionPie("transaction-pie");
+
+    //Create new dimensions for filtering, as filtering dimensions in use doesn't filter that chart
+    let dateFilterDim = ndx.dimension(dc.pluck("date")); 
+    let locationDim = ndx.dimension(dc.pluck("locationID")); //Create a new dimesion for tracking which markers are in the current filter
+
+    filterByActiveMarkers(true); // Filter by active markers for the first time, do not dispose of groups and dimensions (as they don't yet exist)
 
     loadingStatus("Drawing charts.");
 
-    resizeCharts();
+    resizeCharts(); // Resize charts to fit available space
+
+
 
     let clearControl = $(document.createElement("div")).css("z-index", "1000");
     let clearControlButton = $(document.createElement("button")).addClass("btn").attr("id", "clear-selection").text("Select All").hide();
@@ -95,70 +92,33 @@ async function initDashboard(data) {
         redrawMarkers();
     }); //.hide(0)
 
-    $("#help").on("click", () => {
-        $("#help-modal").fadeIn();
-    });
-
-    $("#help-modal .modal-cover").on("click", () => {
-        $("#help-modal").fadeOut();
-    });
-
     //Set up datepicker
 
     $("#start-date").datepicker({defaultDate: minDate, dateFormat: "dd/mm/yy"});
     $("#end-date").datepicker({defaultDate: maxDate, dateFormat: "dd/mm/yy"});
 
- //    $("#start-date").datepicker("option", "dateFormat", "dd-mm-yy");
-    // $("#start-date").datepicker("option", "dateFormat", "dd-mm-yy");
-
     resetDateInputs();
 
-    $("#start-date").on("change", changeDateFilter);
-    $("#end-date").on("change", changeDateFilter);
-    // $("#min-spend").on("blur", changeMinSpendFilter);
+    $(".date-input").on("change", changeDateFilter);
 
-    //Create listener to redraw charts onResize, debounce to 0.5s to avoid calling thousands of redraws 
-
-    let debounce = false;
-
-    $(window).on("resize", () => {
-        if (!debounce) {
-            debounce = true;
-            setTimeout(() => {
-                debounce = false;
-
-                chart.transitionDuration(0);
-                spendPie.transitionDuration(0);
-                transactionPie.transitionDuration(0);
-
-                resizeCharts();
-
-                chart.transitionDuration(500);
-                chart.children()[1].transitionDuration(500)
-                spendPie.transitionDuration(500);
-                transactionPie.transitionDuration(500);
-            }, 500);
-        }
-    });
+    let resizeDebounce = false; // Variable to debounce resize event, do it doesn't fire repeatedly when the window is resized.
+    $(window).on("resize", resizeDashboard);
 
     $("#loading-modal").fadeOut();
 
-
-    //add listener for selection changed
-
+    // Set up the composite chart for total spend, and spend for the selected locations
     function createCompositeChart(chartID) {
         loadingStatus("Preparing charts.");
 
         let chart = dc.compositeChart("#" + chartID);
 
         //Plot composite line chart of spend against time
-
         let dateDim = ndx.dimension(dc.pluck("date"));
         let totalSpend = dateDim.group().reduceSum(dc.pluck("spend"));
 
-        minDate = dateDim.bottom(1)[0].date; //get these out somehow
+        minDate = dateDim.bottom(1)[0].date;
         maxDate = dateDim.top(1)[0].date;
-
+        
         chart.margins({top: 15, right: 50, left: 70, bottom: 30})
              .brushOn(false)
              .transitionDuration(500)
@@ -187,7 +147,8 @@ async function initDashboard(data) {
 
         return chart;
     }
-
+    
+    // Creates a pie chart with the label at the centre, disables click to filter
     function createPieChart(ndx, pieID) {
         let pie = dc.pieChart("#" + pieID);
 
@@ -201,7 +162,7 @@ async function initDashboard(data) {
         return pie;
     }
 
-
+    // Create pie chart showing percentage of spend
     function createSpendPie(spendPieID) {
         let spendPie = createPieChart(ndx, spendPieID);
 
@@ -221,7 +182,7 @@ async function initDashboard(data) {
         return spendPie;
     }
 
-
+    // Create pie chart showing percentage of total transactions
     function createTransactionPie(transactionPieID) {
         let transactionPie = createPieChart(ndx, transactionPieID);
 
@@ -244,7 +205,7 @@ async function initDashboard(data) {
         return transactionPie;
     }
 
-    //Resize charts based on current device width and other elements
+    //Resize charts based on current device width and surrounding elements
     function resizeCharts() {
         let deviceWidth = $(window).innerWidth();
         let chartWidth = $("#line-graph").parent().innerWidth();
@@ -279,13 +240,30 @@ async function initDashboard(data) {
         dc.renderAll();
     }
 
+    //Redraw charts onResize, debounce to 0.5s to avoid calling thousands of redraws 
+    function resizeDashboard() {
+        if (!resizeDebounce) {
+            resizeDebounce = true;
+            setTimeout(() => {
+                resizeDebounce = false;
+
+                chart.transitionDuration(0);
+                spendPie.transitionDuration(0);
+                transactionPie.transitionDuration(0);
+
+                resizeCharts();
+
+                chart.transitionDuration(500);
+                chart.children()[1].transitionDuration(500)
+                spendPie.transitionDuration(500);
+                transactionPie.transitionDuration(500);
+            }, 500);
+        }
+    }
+
     //Filter and update the data in the charts to reflect current map selection
     function filterByActiveMarkers(init) {
-        //Can't use dimension filters, as they filter the results from the pie charts as well, so they always show 100%
-        //filterDim.filter(null);
-        //filterDim.filter((d) => markers[d].active);
-
-        //Filtering results using a custom acumulator instead.
+        // Get the line graph containing the selected data from the composite chart
         let selectionChart = chart.children()[1];
 
         if (!init) { //If not initial setup, dispose of groups and dims that are to be replaced 
@@ -299,7 +277,8 @@ async function initDashboard(data) {
             nameDim.dispose();
             topSpendersGroup.dispose();
         }
-
+    
+        // Custom accumulator to only add a transactions spend where their location ID matches the current selection
         spendAtID = selectionChart.dimension().group().reduce(
         (p, v) => {
             if (markers[v.locationID] && markers[v.locationID].active && markers[v.locationID].getVisible()) p.total += v.spend;
@@ -310,15 +289,18 @@ async function initDashboard(data) {
         }, () => {
             return {total: 0}
         });
-            
+        
+        // Custom accessor to display data based on the custom accumulator
         selectionChart.group(spendAtID)
             .valueAccessor((d) => d.value.total);
-
+    
+        // Dimension to group data by whether it is in the selection or not
         selectionDim = ndx.dimension((d) => {
             if(markers[d.locationID] && markers[d.locationID].active && markers[d.locationID].getVisible()) return "Selection";
             else return "";
         });
-
+    
+        // Group the total spend for the selection, create a fake group (for when either the selection or excluded results are empty)
         spendGroup = selectionDim.group().reduceSum(dc.pluck("spend"));
         let spendGroupCleaned = {
             all() {
@@ -329,10 +311,11 @@ async function initDashboard(data) {
         }
         spendTotal = selectionDim.groupAll().reduceSum(dc.pluck("spend"));
 
+        // Assign spend totals grouped by selection to the spend pie chart
         spendPie.dimension(selectionDim)
             .group(spendGroupCleaned);
 
-
+        // Group the total number of transactions for the selection, create a fake group as for total spend pie chart
         transactionGroup = selectionDim.group().reduceCount(dc.pluck("spend"));
         let transactionGroupCleaned = {
             all() {
@@ -342,40 +325,44 @@ async function initDashboard(data) {
             }
         }
         transactionTotal = selectionDim.groupAll().reduceCount(dc.pluck("spend"));
-
+    
+        // Assign spend totals grouped by selection to the transaction pie chart
         transactionPie.dimension(selectionDim)
             .group(transactionGroupCleaned);
-
+        
+        // Create a dimension for client names in the current selection.
         nameDim = ndx.dimension((d) => {
             if(markers[d.locationID] && markers[d.locationID].active && markers[d.locationID].getVisible() && d.spend > 0) return d.name;
-            else return "!EXCLUDE!";
         });
-
+    
+        // Group selected clients by spend so the top 3 can be extracted
         topSpendersGroup = nameDim.group().reduceSum(dc.pluck("spend"));
 
+        // If not initial setup redraw all charts
         if(!init) {
             chart.redraw();
             spendPie.redraw();
             transactionPie.redraw();
         }
 
+        // Show or hide the clear selection button as needed
+        if (markers.find((item) => !item.active)) $("#clear-selection").fadeIn(300);
+        else $("#clear-selection").fadeOut(300);
+
         showTopSpenders();
     }
 
+    // Shows the top 3 spenders in the selection, plus the number of others
     function showTopSpenders() {
-        let topSpenders = topSpendersGroup.top(4);
-        topSpenders = topSpenders.filter((item) => item.key != "!EXCLUDE!");
-        if (topSpenders.length > 3) topSpenders.pop();
-
+        let topSpenders = topSpendersGroup.top(3);
         let theRest = topSpendersGroup.size() - topSpenders.length;
-        if (topSpendersGroup.all().find((item) => item.key == "!EXCLUDE!")) theRest -= 1;
 
-        let topSpendersDiv = $("#top-spenders").text("Selection: ");
+        let topSpendersDiv = $("#top-spenders").text("Selection: "); // Find the dom element for the selection in the graphs key
 
-        // let html = "";
+        // Assemble span elements containing names of top spenders, and their total spend in the title
         if (topSpenders[0] && topSpenders[0].value > 0) topSpendersDiv.append($("<span>").attr("title", `£${topSpenders[0].value}`).text(topSpenders[0].key));
         if (topSpenders[1] && topSpenders[1].value > 0) {
-            if (topSpenders.length > 2) topSpendersDiv.append(document.createTextNode(", "));
+            if (topSpenders.length > 2) topSpendersDiv.append(document.createTextNode(", ")); // Use text nodes to escape characters from spreadsheet
             else topSpendersDiv.append(document.createTextNode(" and "));
             topSpendersDiv.append($("<span>").attr("title", `£${topSpenders[1].value}`).text(topSpenders[1].key));
         }
@@ -390,10 +377,8 @@ async function initDashboard(data) {
             }
         }
 
+        // Display total value for the Total label in the chart key
         $("#total-spend").html(`<span title="£${spendTotal.value()}">Total</span>`);
-
-        if (markers.find((item) => !item.active)) $("#clear-selection").fadeIn(300);
-        else $("#clear-selection").fadeOut(300);
     }
 
     //Update cluster marker appearance based on whether the markers it contains are part of the active selection or not
@@ -419,27 +404,30 @@ async function initDashboard(data) {
         markerCluster.clusters_.forEach(redrawCluster);
     }
 
+    // Resets the date inputs to their initial values from the data set
     function resetDateInputs() {
-
         $("#start-date").datepicker("option", "minDate", minDate).datepicker("option", "maxDate", maxDate).datepicker('setDate', minDate);
         $("#end-date").datepicker("option", "minDate", minDate).datepicker("option", "maxDate", maxDate).datepicker('setDate', maxDate);
     }
 
+    // Hide markers that aren't in use by the current date filters
     function hideUnusedMarkers() {
-        markerSpend = locationDim.group().reduceSum(dc.pluck("spend")).all();
-
+        markerSpend = locationDim.group().reduceSum(dc.pluck("spend")).all(); // Get the spend at each location
+        
+        // Determine if all visible markers are active or not
         allMarkersSelected = true;
-        if (markers.find((item) => !item.active && item.getVisible())) allMarkersSelected = false;
+        if (markers.find((item) => !item.active && item.getVisible())) allMarkersSelected = false; 
 
-        markerCluster.removeMarkers(markers);
+        markerCluster.removeMarkers(markers); // Remove all markers from the clusterer
+        // Iterate over all markers, if they don't have any spend based on current filters hide them, otherwise add them to the marker clusterer
         markers.forEach((item, i) => {
-            if (markerSpend[i].value < 1) {
+            if (markerSpend[i].value < 0) {
                 item.setVisible(false);
                 item.active = true;
             }else if (item.getMap() == null) {
                 if (!item.getVisible()) {
                     item.setVisible(true);
-                    item.active = allMarkersSelected; //If all selected markers are active, any markers added back in will also be active
+                    item.active = allMarkersSelected; //If all selected markers are active, any markers added back in will also be active, if not new markers will be inactive
                 }
                 markerCluster.addMarker(item);
             }
@@ -447,19 +435,21 @@ async function initDashboard(data) {
         
         if (!markers.find((item) => item.active && item.getVisible())) markers.forEach((item) => item.active = true); //If no visible markers are active after filtering, make all markers active
         
+        // Filter chart by selected markers, and redraw
         filterByActiveMarkers();
-
         redrawMarkers();
     }
 
+    // Adds or changes the date filters
     function changeDateFilter() {
-
+        //Parse dates from input
         let startDate = $("#start-date").val().split("/");
         let endDate = $("#end-date").val().split("/");
 
         let newMinDate = new Date(`${startDate[2]}-${startDate[1]}-${startDate[0]}`);
         let newMaxDate = new Date(`${endDate[2]}-${endDate[1]}-${endDate[0]}`);
-
+        
+        // If they are invalid, reset to default
         if (newMinDate == "Invalid Date") {
             newMinDate = minDate;
             $("#start-date").datepicker('setDate', minDate);
@@ -468,257 +458,23 @@ async function initDashboard(data) {
             newMaxDate = maxDate;
             $("#end-date").datepicker('setDate', maxDate);
         }
-
+        
+        // Change max and min dates for the date picker to be bounded by the input of each other
         $("#start-date").datepicker("option", "maxDate", newMaxDate);
         $("#end-date").datepicker("option", "minDate", newMinDate);
-
+        
+        // Clear the filters from the crossfilter, then filter by date
         dateFilterDim.filter(null);
         dateFilterDim.filter(dc.filters.RangedFilter(newMinDate, newMaxDate));
         chart.focus([newMinDate, newMaxDate]);
-
+        
+        // Hide any markers excluded by the new filters, and add any hidden ones back in
         hideUnusedMarkers();
     }
 }
 
 
-// function initDashboard(data, locationIDs) {
-
-
-    // //Initialise Google Maps
-    // $("#loading_status").text("Loading Google Maps.");
-
-    // let map = new google.maps.Map(document.getElementById("map"), {
-    //     zoom: 6,
-    //     center: {
-    //         lat: 52.483333, 
-    //         lng: -1.9
-    //     },
-    //     mapTypeControl: false,
-    //     scaleControl: false,
-    //     streetViewControl: false,
-    //     rotateControl: false,
-    //     fullscreenControl: false,
-    //     styles: [
-    //         {featureType: "poi", stylers: [{visibility: "off"}]}, 
-    //         {featureType: "transit", stylers: [{visibility: "off"}]}]
-    // });
-
-    // iconPath = "assets/images/b/";
-
-    // //Create map markers from the location data, and add to array
-    // markers = [];
-
-    // $("#loading_status").text("Adding map markers.");
-    // locationIDs.forEach((location, i) => {
-    //     let newMarker = new google.maps.Marker({position: {lat: location.lat, lng: location.lng}, title: location.postcode, map: map});
-    //     newMarker.active = true; //Extend the marker object with active property
-    //     markers.push(newMarker);
-    // });
-
-    // //Add listener for marker clicks, filter and redraw
-    // markers.forEach((marker) =>{
-    //     marker.addListener("click", function() {
-            
-    //         if (!this.active) this.active = true; //If the clicked marker was inactive, make it active
-    //         else if (markers.every((item) => item.active || !item.getVisible())) { //If all markers were active, make them all inactive, except this one
-    //                 markers.forEach((item) => {if (item.getVisible()) item.active = false});
-    //                 this.active = true;
-    //         }else if (markers.find((item) => (item.active && item.getVisible()) && item != this)) this.active = false; //If at least some of the other markers are active, make this one inactive
-    //         else markers.forEach((item) => item.active = true); //Otherwise this is the only active marker, so set them all to active
-
-    //         filterByActiveMarkers();
-
-    //         redrawMarkers();
-    //     });
-    // });
-
-    //Initilise marker clusterer from MarkerClusterer API for Google Maps using array of markers
-    // let markerCluster = new MarkerClusterer(map, markers,
-    //         {averageCenter: true, 
-    //             zoomOnClick: false,
-    //             styles: [{
-    //                 url: iconPath + "cluster-active.png",
-    //                 height: 48,
-    //                 width: 55,
-    //                 anchor: [10, 0],
-    //                 textColor: "#000",
-    //                 textSize: 15,
-    //             }]});
-
-    // //Add listener for cluster clicks, filter and redraw
-    // map.addListener("clusterclick", (cluster) =>{
-    //     clusterMarkers = cluster.getMarkers()
-
-    //     // if (clusterMarkers.every((item) => !item.active)) clusterMarkers.forEach((item) => item.active = true); //If all, or some of the markers in the cluster are inactive, make them all active
-    //     // else 
-    //     if (clusterMarkers.find((item) => !item.active)) clusterMarkers.forEach((item) => item.active = true);
-    //     else if (markers.every((item) => item.active || !item.getVisible())) { //If all the markers are active, make them all inactive except these ones
-    //         markers.forEach((item) => {if (item.getVisible()) item.active = false});
-    //         clusterMarkers.forEach((item) => item.active = true);
-    //     }else if (markers.find((item) => (item.active && item.getVisible()) && !clusterMarkers.includes(item))) clusterMarkers.forEach((item) => item.active = false);//If at least one marker outside the cluster is active, make the cluster inactive
-    //     else markers.forEach((item) => item.active = true); //Finally if all the markers are inactive, except these ones make them all active 
-
-    //     filterByActiveMarkers();
-
-    //     redrawMarkers();
-    // });
-
-    // //Listen for changes to clusters so they can be redrawn as appropriate
-    // map.addListener("cluster_redraw", redrawCluster);
-
-    // //Listen for bound change, and reset double click to zoom
-    // map.addListener("bounds_changed", () => {
-    //     map.set("disableDoubleClickZoom", false);
-    // });
-
-    //Set up charts
-
-    // let parseDate = d3.time.format("%d/%m/%y").parse;
-
-    // data.forEach((d) => {
-    //     d.date = parseDate(d.date);
-    //     d.spend = parseInt(d.spend);
-    // });
-
-    // let ndx = crossfilter(data);
-
-
-    // $("#loading_status").text("Preparing charts.");
-
-    // let chart = dc.compositeChart("#line-graph");
-
-    // //Plot composite line chart of spend against time
-
-    // let dateDim = ndx.dimension(dc.pluck("date"));
-
-    // let totalSpend = dateDim.group().reduceSum(dc.pluck("spend"));
-
-    // let minDate = dateDim.bottom(1)[0].date;
-    // let maxDate = dateDim.top(1)[0].date;
-
-    // let spendAtID;
-
-    // let dateFilterDim = ndx.dimension(dc.pluck("date")); //Create new dimensions for filtering, as filtering the current one doesn't filter that chart
-    // // let spendFilterDim = ndx.dimension(dc.pluck("spend"));
-    // // let maxSpend = spendFilterDim.top(1)[0].spend;
-    // // console.log(maxSpend);
-    // let locationDim = ndx.dimension(dc.pluck("locationID")); //Create a new dimesion for tracking which markers are in the current filter
-
-    // // let minDateString = minDate.toISOString().split("T")[0];
-    // // let maxDateString = maxDate.toISOString().split("T")[0];
-
-    // chart.margins({top: 15, right: 50, left: 70, bottom: 30})
-    //     .brushOn(false)
-    //     .transitionDuration(500)
-    //     .shareTitle(false)
-    //     .x(d3.time.scale().domain([minDate, maxDate]))
-    //     .yAxis().ticks(4).tickFormat((v) => {
-    //         if (v >= 1000) v = (v/1000).toFixed(1);
-    //         return "£" + v;
-    //     });
-
-    // chart.compose([
-    //     dc.lineChart(chart)
-    //         .dimension(dateDim)
-    //         .group(totalSpend)
-    //         .title((d) => `${d.key.toDateString()}: £${d.value}`)
-    //         //.interpolate("basis")
-    //         .evadeDomainFilter(true)
-    //         .colors("#3498db")
-    //         .transitionDuration(500),
-    //     dc.lineChart(chart)
-    //         .dimension(dateDim)
-    //         .title((d) => `${d.key.toDateString()}: £${d.value.total}`)
-    //         //.interpolate("basis")
-    //         .evadeDomainFilter(true)
-    //         .colors("#e74c3c")
-    //         .transitionDuration(500)
-    // ]);
-
-    // //Create 2 pie charts to show proportion of spend and transactions attributed to the current selection
-    // //All values are currently selected, so group them all together for now.
-
-    // //Declare variables for various goups, to be assigned in filterByActiveMarkers()
-    // let selectionDim;
-
-    // let spendGroup;
-    // let spendTotal;//Use total grouping for calculating percentage
-    // let transactionGroup;
-    // let transactionTotal;//Use total grouping for calculating percentage
-
-    // let spendPie = dc.pieChart("#spend-pie");
-    // let transactionPie = dc.pieChart("#transaction-pie");
-
-    // spendPie.innerRadius(50)
-    //     .externalLabels(-100)
-    //     .minAngleForLabel(0)
-    //     .colors(d3.scale.ordinal().range(["#e74c3c", "#3498db"]))
-    //     //Always show label for Selection only, calculated as its percentage of total, move it to the centre of the pie
-    //     .label((d) => {
-    //         if (d.key == "Selection") {
-    //             let percentage = Math.floor(d.value / spendTotal.value() * 100); //https://stackoverflow.com/questions/53033715/bar-chart-dc-js-show-percentage
-    //             if (percentage < 1) percentage = "<1";
-    //             return `${percentage}%`;
-    //         }else return "";
-    //     })
-    //     .title((d) => { 
-    //         if (d.key == "Selection") return `Selection: £${d.value}`;
-    //         else return `Total: £${spendTotal.value()}`;
-    //     });
-
-    // transactionPie.innerRadius(50)
-    //     .externalLabels(-100)
-    //     .minAngleForLabel(0)
-    //     .colors(d3.scale.ordinal().range(["#e74c3c", "#3498db"]))
-    //     //Always show label for Selection only, calculated as its percentage of total, move it to the centre of the pie
-    //     .label((d) => {
-    //         if (d.key == "Selection") {
-    //             let percentage = Math.floor(d.value / transactionTotal.value() * 100);
-    //             if (percentage < 1) percentage = "<1";
-    //             return `${percentage}%`;
-    //         }else return "";
-    //     })
-    //     .title((d) => { 
-    //         if (d.key == "Selection") {
-    //             let plural = "s";
-    //             if (d.value <= 1) plural = "";
-    //             return `Selection: ${d.value} transaction${plural}`;
-    //         }else return `Total: ${transactionTotal.value()} transactions`;
-    //     });
-
-    // spendPie.onClick = () => false; //Remove onClick from pie charts, so they can't trigger filter
-    // transactionPie.onClick = () => false;
-
-    // let nameDim;
-
-    // let topSpendersGroup;
-
-    // filterByActiveMarkers(true);
-
-    // $("#loading_status").text("Drawing charts.");
-
-    // resizeCharts();
-
-    // markerCluster.fitMapToMarkers(); //Use markerClusterer built in function to show all markers on map
-
-    
-
-
-	
-
-	// function changeMinSpendFilter() {
-	// 	let newMinSpend = parseInt($("#min-spend").val());
-
-	// 	spendFilterDim.filter(null);
- //       	spendFilterDim.filter(dc.filters.RangedFilter(newMinSpend, maxSpend + 1)); //filter for min spend
-
- //       	hideUnusedMarkers();
-	// }
-
-    //From here
-
-// }
-
+// Change the loading status text on the loading modal
 function loadingStatus(text) {
     $("#loading_status").text(text);
 }
@@ -743,11 +499,8 @@ function getUniquePostcodes(data) {
 }
 
 
-/**
- * Creates a list of verified postcodes with latitudes and longitudes from the Postcodes.io API.
- * @param {array} postcodeList - An array of strings containing postcodes.
- * @return {array} An array containing the results of the postcode lookup.
- */
+
+// Creates a list of verified postcodes with latitudes and longitudes from the Postcodes.io API.
 function getLatLngFromPostcodes(postcodeList) {
     loadingStatus("Retrieving postcode info from postcodes.io.");
 
@@ -789,21 +542,10 @@ function getLatLngFromPostcodes(postcodeList) {
         if (postcodeList.length > 0) sendNewPostcodesRequest();
         else reject("No postcodes to check!");
     });
-
-    // try {
-    //     return await processingRequest;
-    // }
-    // catch(e) {
-    //     return []; // Process error
-    // }
 }
 
 
-/**
- * Creates a list of unique locations containing postcode, latitude and longitude, and assigns a corresponding ID to the dataset.
- * @param {array} postcodeData - An array of the results of the Postcodes.io bulk lookup. Objects containing a query string, and a result object.
- * @return {array} An array of objects containing a postcode and corresponding lat and lng.
- */
+// Creates a list of unique locations containing postcode, latitude and longitude, and assigns a corresponding ID to the dataset.
 function assignLatLngIDs(postcodeData, data) {
     loadingStatus("Assigning location IDs.");
 
@@ -833,6 +575,8 @@ function assignLatLngIDs(postcodeData, data) {
     return locationIDs;
 }
 
+
+// Initialises google map in targeted DOM element. Returns map object
 function initMap(mapID) {
     loadingStatus("Loading Google Maps.");
 
@@ -856,12 +600,8 @@ function initMap(mapID) {
 }
 
 
-/**
- * Adds markers to the map for each location
- * @param {array} locations - An array of objects containing a postcode and corresponding lat and lng.
- * @param {Map} map - Google Map to add the markers to.
- * @return {array} An array of Marker objects. 
- */
+
+// Adds markers to the map for each location, returns an array of markers
 function createLocationMarkers(locations, map) {
     loadingStatus("Adding map markers.");
 
@@ -892,12 +632,7 @@ function createLocationMarkers(locations, map) {
 }
 
 
-/**
- * Adds markers to a marker clusterer so they are rendered in clusters when appropriate.
- * @param {array} markers - List of Marker objects to add to be clustered
- * @param {Map} map - Google Map to add the clusters to.
- * @return {MarkerClusterer}
- */
+// Adds markers to a marker clusterer so they are rendered in clusters when appropriate. Returns MarkerClusterer
 function createMarkerClusterer(markers, map) {
     loadingStatus("Clustering map markers.");
     //Initilise marker clusterer from MarkerClusterer API for Google Maps using array of markers
@@ -940,11 +675,7 @@ function createMarkerClusterer(markers, map) {
 }
 
 
-/**
- * Parses data and returns a crossfilter object.
- * @param {array} data - An array of transaction data.
- * @return {Crossfilter}
- */
+// Parses dates and numbers within dataset and returns a crossfilter object.
 function createNdx(data) {
     data.forEach((d) => {
         d.date = d3.time.format("%d/%m/%y").parse(d.date);
