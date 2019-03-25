@@ -5,7 +5,7 @@ const totalColor = "#3498db";
 
 $(() => {
     loadingStatus("Loading test-data.csv.");
-    $.get("assets/data/test-data.csv")
+    $.get("assets/data/florist.csv")
      .then(initDashboard);
 
     // Attach click events to show/hide the help modal
@@ -678,7 +678,7 @@ function createMarkerClusterer(markers, map) {
 // Parses dates and numbers within dataset and returns a crossfilter object.
 function createNdx(data) {
     data.forEach((d) => {
-        d.date = d3.time.format("%d/%m/%y").parse(d.date);
+        d.date = d3.time.format("%d/%m/%Y").parse(d.date);
         d.spend = parseInt(d.spend);
     });
 

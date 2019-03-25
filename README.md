@@ -47,7 +47,7 @@ It should look functional and appeal to people who have a job to get done.
 - The dashboard has a responsive layout, adjusting elements to resize events. At larger resolutions it aims to display the entire dashboard without scrolling.
 - The dashboard features graphs and pie charts to visualise data.
 - The dashboard has an adjustable date range to filter data.
-- The dashboard has an interactive map to visualise and filter data.
+- The dashboard has an interactive map to visualise and filter data by selection.
 
 ### Features Left to Implement
 
@@ -72,11 +72,22 @@ It should look functional and appeal to people who have a job to get done.
 - [Jasmine 3.3.0](https://jasmine.github.io/)
 	- Jasmine was used as a testing framework to check functionality and robustness of code.
 
+### Tools
+
+- [GIMP 2.10.8](https://www.gimp.org/)
+	- GNU Image Manipulation Program was used to create the images for markers and clusters based on Google's [default marker image](https://developers.google.com/maps/documentation/javascript/custom-markers#customizing_a_map_marker).
+
 ## Testing
 
 The site has been tested on a variety of devices, using different browsers and resolutions to ensure compatability and responsiveness.
 
 Automated testing was carried out using Jasmine, these tests can be run [here](https://asquirrelstail.github.io/data-dashboard/testing/). Due to the graphical nature of the dashboard the [test specs](https://github.com/ASquirrelsTail/data-dashboard/tree/master/testing/spec) mainly focus on ensuring user input is correctly validated and handled.
+
+Manual testing was carried out throughout development using a consistent small dataset to ensure results (graphs, maps etc.) displayed data correctly for various situations. Larger datasets were used to test how well the dashboard handled large amounts of data.
+
+Specialised datasets for each scenario were used to walk through user stories and ensure the dashboard helped them achieve their aims. These datasets can be selected when the dashboard loads.
+
+A/B user testing was used to compare map markers and determine which design was easiest to understand. A/B testing was also used to see how marker clicks should react consistently with expectations, for example double clicks, and clicking to add/remove from the selection.s
 
 ## Deployment
 
