@@ -333,6 +333,7 @@ async function initDashboard(data) {
         // Create a dimension for client names in the current selection.
         nameDim = ndx.dimension((d) => {
             if(markers[d.locationID] && markers[d.locationID].active && markers[d.locationID].getVisible() && d.spend > 0) return d.name;
+            else return "!EXCLUDE!";
         });
     
         // Group selected clients by spend so the top 3 can be extracted
@@ -354,8 +355,12 @@ async function initDashboard(data) {
 
     // Shows the top 3 spenders in the selection, plus the number of others
     function showTopSpenders() {
-        let topSpenders = topSpendersGroup.top(3);
+        let topSpenders = topSpendersGroup.top(4);
+        topSpenders = topSpenders.filter((item) => item.key != "!EXCLUDE!");
+        if (topSpenders.length > 3) topSpenders.pop();
+
         let theRest = topSpendersGroup.size() - topSpenders.length;
+        if (topSpendersGroup.all().find((item) => item.key == "!EXCLUDE!")) theRest -= 1;
 
         let topSpendersDiv = $("#top-spenders").text("Selection: "); // Find the dom element for the selection in the graphs key
 
