@@ -28,13 +28,21 @@
         <div id="help" class="btn"></div>
     </header>
     <!-- Modal showing loading information -->
-    <div id="loading-modal">
+    <div id="intro-modal">
         <div class="modal-cover"></div>
         <div class="modal">
-            <div><span class="loading-spinner"></span></div>
-            <p id="loading_text">Loading</p>
-            <!-- #loading_status updates with information on what is currently loading -->
-            <p id="loading_status"></p> 
+            <h3>Select test data</h3>
+            <form id="data-select">
+                <select name="data-file" id="data-file">
+                    <option value="" disabled selected>Select a file...</option>
+                    <option value="cosmetics.csv">Cosmetics Company Data</option>
+                    <option value="florist.csv">Florists Data</option>
+                    <option value="test-data.csv">Test Data</option>
+                    <option value="-1">Load .csv File</option>
+                </select><br>
+                <span id="upload-line"><input type="file" name="data-upload" id="data-upload" accept=".csv"><br></span>
+                <input type="submit" value="Load Data">
+            </form>
         </div>
     </div>
     <!-- Modal showing help and information -->

@@ -2,10 +2,36 @@ const iconPath = "assets/images/b/";
 const selectionColor = "#e74c3c";
 const totalColor = "#3498db";
 
-
 $(() => {
-    loadingStatus("Loading test-data.csv.");
-    $.get("assets/data/florist.csv")
+    $("#upload-line").hide();
+
+    $("#data-file").on("change", () => {
+        let dataFile = $("#data-file").val();
+        if (dataFile == "-1") $("#upload-line").show();
+        else $("#upload-line").hide();
+    });
+
+    $("#data-select").on("submit", (e) => {
+        e.preventDefault();
+        let dataFile = $("#data-file").val();
+        if (dataFile) {
+            if (dataFile != "-1") loadData(dataFile);
+        }
+    });
+});
+
+
+function loadData(dataFile) {
+    $("#intro-modal").html(`<div class="modal-cover"></div>
+                            <div class="modal">
+                            <div><span class="loading-spinner"></span></div>
+                            <p id="loading_text">Loading</p>
+                            <p id="loading_status"></p>
+                            </div>`);
+     
+
+    loadingStatus("Loading " + dataFile);
+    $.get("assets/data/" + dataFile)
      .then(initDashboard);
 
     // Attach click events to show/hide the help modal
@@ -16,7 +42,7 @@ $(() => {
     $("#help-modal .modal-cover").on("click", () => {
         $("#help-modal").fadeOut();
     });
-});
+}
 
 
 async function initDashboard(data) {
@@ -104,7 +130,7 @@ async function initDashboard(data) {
     let resizeDebounce = false; // Variable to debounce resize event, do it doesn't fire repeatedly when the window is resized.
     $(window).on("resize", resizeDashboard);
 
-    $("#loading-modal").fadeOut();
+    $("#intro-modal").fadeOut();
 
     // Set up the composite chart for total spend, and spend for the selected locations
     function createCompositeChart(chartID) {
