@@ -16,12 +16,17 @@ $(() => {
         let dataFile = $("#data-file").val();
         if (dataFile) {
             if (dataFile != "-1") loadData(dataFile);
+            else{
+                let filename = $("#data-upload").val();
+                if (filename == "") console.log("No file selected");
+                else loadData(filename, $("#data-upload")[0].files[0]);
+            }
         }
     });
 });
 
 
-function loadData(dataFile) {
+function loadData(dataFile, file) {
     $("#intro-modal").html(`<div class="modal-cover"></div>
                             <div class="modal">
                             <div><span class="loading-spinner"></span></div>
@@ -31,8 +36,13 @@ function loadData(dataFile) {
      
 
     loadingStatus("Loading " + dataFile);
-    $.get("assets/data/" + dataFile)
-     .then(initDashboard);
+    if (!file) $.get("assets/data/" + dataFile)
+                .then(initDashboard);
+    else {
+        let reader = new FileReader();
+        reader.readAsText(file);
+        reader.onload = () => initDashboard(reader.result);
+    }
 
     // Attach click events to show/hide the help modal
     $("#help").on("click", () => {
