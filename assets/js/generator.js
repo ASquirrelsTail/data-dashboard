@@ -1,9 +1,19 @@
 $(() => {
+    $("#results").hide();
+
     $("#start-date").datepicker({dateFormat: "dd/mm/yy"});
     $("#end-date").datepicker({dateFormat: "dd/mm/yy"});
 
     $("#generate").on("click", generate);
+
+    $("#copy-to-clipboard").on("click", () => {
+        let resultData = $("#result-data");
+        resultData.select();
+        document.execCommand("copy");
+        resultData.blur();
+    })
 });
+
 
 async function generate() {
 
@@ -38,7 +48,10 @@ async function generate() {
     let radius = parseInt($("#radius").val());
     
     customers = await generatePostcodes(customers, epicenter, radius);
-    setTimeout(() => generateTransactions(customers, noTransactions, minSpend, avgSpend, maxSpend, minDate, dateBounds), 10000);
+    let transactions = generateTransactions(customers, noTransactions, minSpend, avgSpend, maxSpend, minDate, dateBounds);
+
+    $("#result-data").text(transactions);
+    $("#results").fadeIn();
 }
 
 
@@ -50,49 +63,47 @@ async function generatePostcodes(customers, epicenter, radius) {
         return generateRandomPostcodes(customers);
     }else{
         //Generate a random lat/lang for each customer within the radius of the epicenter
-        customers.forEach(async (customer) => {
+        for (let i=0; i < customers.length; i++) {
             let postcodeQuery = {result: null};
             let attempts = 0;
             while (!postcodeQuery.result && attempts < 5) {
                 let distance = Math.random() * radius / 69;
                 let direction = Math.random() * 2 * Math.PI;
-                customer.longitude = center.result.longitude + (distance * Math.cos(direction));
-                customer.latitude = center.result.latitude + (distance * Math.sin(direction));
+                customers[i].longitude = center.result.longitude + (distance * Math.cos(direction));
+                customers[i].latitude = center.result.latitude + (distance * Math.sin(direction));
                 postcodeQuery = await $.ajax({
-                    url: "https://api.postcodes.io/postcodes?lon=" + customer.longitude + "&lat=" + customer.latitude + "&limit=1&radius=2000",
+                    url: "https://api.postcodes.io/postcodes?lon=" + customers[i].longitude + "&lat=" + customers[i].latitude + "&limit=1&radius=2000",
                     dataType: 'json'
                 });
                 attempts++;
             }
             if (attempts >= 5) {
                 postcodeQuery = await $.ajax({url: "https://api.postcodes.io/random/postcodes?outcode=" + epicenter.split(" ")[0], dataType: 'json'});
-                customer.postcode = postcodeQuery.result.postcode;
-            }else customer.postcode = postcodeQuery.result[0].postcode;
-        });
+                customers[i].postcode = postcodeQuery.result.postcode;
+            }else customers[i].postcode = postcodeQuery.result[0].postcode;
+        }
         return customers;
     }
 }
 
+
 async function generateRandomPostcodes(customers) {
-    customers.forEach(async (customer) => {
+    for (let i=0; i < customers.length; i++) {
         random = await $.ajax({url: "https://api.postcodes.io/random/postcodes", dataType: 'json'});
-        customer.postcode = random.result.postcode;
-    });
+        customers[i].postcode = random.result.postcode;
+    }
     return customers;
 }
 
-function waitForPostcodes(customers) {
-    return promise
-}
 
-async function generateTransactions(customers, noTransactions, minSpend, avgSpend, maxSpend, minDate, dateBounds) {
+function generateTransactions(customers, noTransactions, minSpend, avgSpend, maxSpend, minDate, dateBounds) {
     noCustomers = customers.length;
     let transactions = [];
     for (let i=0; i < noTransactions; i++) {
         if (i < noCustomers) transactions.push({name: customers[i].name, postcode: customers[i].postcode});
         else{
             let randomCustomer = Math.floor(Math.random() * (noCustomers - 1));
-            let customerPostcode = await customers[randomCustomer].postcode;
+            let customerPostcode = customers[randomCustomer].postcode;
             transactions.push({name: customers[randomCustomer].name, postcode: customerPostcode});
         }
         let randomNum = Math.random() * 2;
@@ -101,9 +112,9 @@ async function generateTransactions(customers, noTransactions, minSpend, avgSpen
         randomDate.setTime(minDate.getTime() + Math.round(Math.random() * dateBounds));
         transactions[i].date = randomDate.toLocaleString('en-GB', { timeZone: 'UTC' }).split(",")[0];
     }
-    document.write("date,spend,name,postcode<br>\n");
-    transactions.forEach((transaction) => document.write(`${transaction.date},${transaction.spend},${transaction.name},${transaction.postcode}<br>\n`));
-    console.log(transactions);
+    let transactionsString = "date,spend,name,postcode\n";
+    transactions.forEach((transaction) => transactionsString += `${transaction.date},${transaction.spend},${transaction.name},${transaction.postcode}\n`);
+    return transactionsString;
 }
 
 

@@ -19,6 +19,10 @@
 	<label for="no-customers">Number of customers: </label><input type="number" name="no-customers" id="no-customers" min="1" value="10"><br>
 	<label for="epicenter">Centre (postcode): </label><input type="text" name="epicenter" id="epicenter"><br>
 	<label for="radius">Radius: </label><input type="number" name="radius" id="radius" min="1" value="10"> Miles<br>
-	<input type="submit" id="generate" value="Generate">
+	<input type="submit" id="generate" value="Generate"><br><br>
+	<div id="results">
+		<textarea name="result-data" id="result-data" cols="70" rows="10"></textarea><br>
+		<button id="copy-to-clipboard">Copy to clipboard</button>
+	</div>
 </body>
 </html>
