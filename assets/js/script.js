@@ -6,9 +6,18 @@ $(() => {
     $("#upload-line").hide();
 
     $("#data-file").on("change", () => {
+        $("#data-file").blur();
+        $("#data-file").css("border-color", "initial");
         let dataFile = $("#data-file").val();
         if (dataFile == "-1") $("#upload-line").show();
         else $("#upload-line").hide();
+    });
+
+    $("#data-upload").on("change", () => {
+        let filename = $("#data-upload").val().split("\\").pop();
+        if (!filename) filename = "No file selected";
+        $("#data-upload-button .filename").text(filename);
+        $("#data-upload-button span").css("border-color", "initial");
     });
 
     $("#data-select").on("submit", (e) => {
@@ -18,10 +27,10 @@ $(() => {
             if (dataFile != "-1") loadData(dataFile);
             else{
                 let filename = $("#data-upload").val();
-                if (filename == "") console.log("No file selected");
-                else loadData(filename, $("#data-upload")[0].files[0]);
+                if (filename == "") $("#data-upload-button span").css("border-color", "red"); // console.log("No file selected");
+                else loadData(filename.split("\\").pop(), $("#data-upload")[0].files[0]);
             }
-        }
+        }else $("#data-file").css("border-color", "red");
     });
 });
 
@@ -36,8 +45,10 @@ function loadData(dataFile, file) {
      
 
     loadingStatus("Loading " + dataFile);
+    console.log(dataFile);
     if (!file) $.get("assets/data/" + dataFile)
-                .then(initDashboard);
+                .then(initDashboard)
+                .catch(() => console.log("Failed to load data!"));
     else {
         let reader = new FileReader();
         reader.readAsText(file);
@@ -101,8 +112,9 @@ async function initDashboard(data) {
     let transactionPie = createTransactionPie("transaction-pie");
 
     //Create new dimensions for filtering, as filtering dimensions in use doesn't filter that chart
-    let dateFilterDim = ndx.dimension(dc.pluck("date")); 
-    let locationDim = ndx.dimension(dc.pluck("locationID")); //Create a new dimesion for tracking which markers are in the current filter
+    let dateFilterDim = ndx.dimension(dc.pluck("date"));
+    //Create a new dimesion for tracking which markers are in the current filter
+    let locationDim = ndx.dimension(dc.pluck("locationID")).filterFunction((d) => d != -1); //Filter out anything that doesn't have a location ID
 
     filterByActiveMarkers(true); // Filter by active markers for the first time, do not dispose of groups and dimensions (as they don't yet exist)
 

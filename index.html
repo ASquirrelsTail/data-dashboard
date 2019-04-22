@@ -25,26 +25,39 @@
             <h1>Bloodhound</h1>
             <h2>Sniff out your best customers!</h2>
         </div>
-        <div id="help" class="btn"></div>
+        <nav>
+            <div id="help" class="btn"></div>
+        </nav>
     </header>
     <!-- Modal showing loading information -->
-    <div id="intro-modal">
-        <div class="modal-cover"></div>
-        <div class="modal">
-            <h3>Select test data</h3>
-            <form id="data-select">
-                <select name="data-file" id="data-file">
-                    <option value="" disabled selected>Select a file...</option>
-                    <option value="cosmetics.csv">Cosmetics Company Data</option>
-                    <option value="florist.csv">Florists Data</option>
-                    <option value="test-data.csv">Test Data</option>
-                    <option value="-1">Load .csv File</option>
-                </select><br>
-                <span id="upload-line"><input type="file" name="data-upload" id="data-upload" accept=".csv"><br></span>
-                <input type="submit" value="Load Data">
-            </form>
+    <section id="intro-modal">
+        <div class="modal-cover modal-cover--solid"></div>
+        <div class="modal flex-container">
+            <div class="flex-50">
+                <h2>Welcome to Bloodhound</h2>
+                <p>Bloodhound is an app for spatialy visualising and filtering transaction data to help you find out where your customers are. 
+                Using Bloodhound you can find out where customers are spending money with your business, and where they aren't, helping you make better decisions.</p>
+                <p>This demo has a selection of sample data sets to choose from, or you can choose to upload a .csv file of your own.</p>
+            </div>
+            <div class="flex-50">
+                <form id="data-select" class="flex-container">
+                    <div class="flex-100"><label for="data-file"><h3 class="center">Select test data</h3></label></div>
+                    <select name="data-file" id="data-file">
+                        <option value="" disabled selected>Select a file...</option>
+                        <option value="cosmetics.csv">Cosmetics Company Data</option>
+                        <option value="florist.csv">Florists Data</option>
+                        <option value="test-data.csv">Test Data</option>
+                        <option value="-1">Upload a .csv File</option>
+                    </select><br>
+                    <div id="upload-line">
+                        <label for="data-upload" id="data-upload-button"><span class="button">Choose File</span><span class="filename">No file selected</span></label>
+                        <input type="file" name="data-upload" id="data-upload" accept=".csv">
+                    </div>
+                    <input type="submit" value="Load Data">
+                </form>
+            </div>
         </div>
-    </div>
+    </section>
     <!-- Modal showing help and information -->
     <section id="help-modal">
         <div class="modal-cover"></div>
