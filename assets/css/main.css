@@ -77,6 +77,14 @@ header {
 	background-color: rgba( 0, 0, 0, 1);
 }
 
+.no-promises.no-arrow #intro-modal {
+	display: none;
+}
+
+.promises.arrow #es6-modal {
+	display: none;
+}
+
 #help-modal {
 	display: none;
 }

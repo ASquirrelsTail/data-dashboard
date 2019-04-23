@@ -72,6 +72,8 @@ It should look functional and appeal to people who have a job to get done.
 - [Postcodes.io](https://postcodes.io/)
 	- The free, open source Postcodes.io API is used to get location data from postcodes to draw on the map. It was chosen instead of making hundreds of calls to the Google Maps Places API, which could potentially incur large charges, and as the dashboard only requires location coordinate data.
 	- Postcodes.io was also used to generate random postcodes, and to find postcodes within a certain radius for the [test data generator](https://asquirrelstail.github.io/data-dashboard/generator.html).
+- [Modernizr](https://modernizr.com/)
+	- Modernizr is used to inform users of older browsers that they need to update/upgrade in order to use the dashboard.
 - [Random User Generator](https://randomuser.me/)
 	- Randomuser.me was used by the customer data generator to generate random names for customers.
 - [Jasmine 3.3.0](https://jasmine.github.io/)
@@ -102,7 +104,7 @@ The Google Maps API key used in this project is restricted to the URL of its Git
 
 ## Known Issues
 
-The dashboard does not function in Internet Explorer due to the use of JavaScript ES6 promises, async/await and arrow functions.
+The dashboard does not function in Internet Explorer due to the use of JavaScript ES6 promises, async/await and arrow functions. Modernizr is used to show IE users a notice informing them.
 
 Over time some of the postcodes from the test data sets have been removed from use. These are filtered out of the data set, however this results in some data not being displayed as expected (for instance fewer total transactions).
 
