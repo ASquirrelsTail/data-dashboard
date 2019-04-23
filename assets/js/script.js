@@ -777,3 +777,15 @@ ClusterIcon.prototype.onAdd = function() {
   //   // that.map_.set("disableDoubleClickZoom", false);
   // });
 };
+
+//Redeclare ClusterIcon show function prototype to trigger cluster redraw event whenever it is called and the cluster's div is updated
+ClusterIcon.prototype.show = function() {
+  if (this.div_) {
+    var pos = this.getPosFromLatLng_(this.center_);
+    this.div_.style.cssText = this.createCss(pos);
+    this.div_.style.display = '';
+    
+  }
+  this.visible_ = true;
+  google.maps.event.trigger(this.map_, 'cluster_redraw', this.cluster_); //Here
+};

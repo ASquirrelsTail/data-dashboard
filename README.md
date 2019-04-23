@@ -108,8 +108,6 @@ Over time some of the postcodes from the test data sets have been removed from u
 
 The Google Maps API triggers two click events and a double click event when the map is double clicked, resulting in marker clusters being rapidly selected/deselected when they are double clicked. I tried removing doubleclicks completely and debouncing single clicks, but it made single clicks feel less responsive.
 
-When the map is zoomed, and an unselected marker is selected then the map is panned some marker clusters that are unselected occasionally appear to be selected, when they are not. This is to do with the markerclusterer drawing their defaults, but I can't figure out why, or why it only happens occasionally. I can only assume it is to do with the timing of certain Google Maps events triggering.
-
 ## Credits
 
 ### Acknowledgements
