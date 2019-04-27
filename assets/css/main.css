@@ -100,7 +100,7 @@ input, select, button {
 	width: 100%;
 }
 
-form input, form select, #upload-line, #data-select h3 {
+form input, form select, #upload-line, #data-select h3, #validation-line {
 	margin-bottom: 10px;
 }
 
@@ -122,6 +122,12 @@ select:focus-within {
 
 #upload-line {
 	padding: 4px 0;
+}
+
+#validation-line {
+	color: red;
+	font-size: 0.8em;
+	text-align: center;
 }
 
 #data-upload-button {
@@ -158,11 +164,11 @@ select:focus-within {
 	100% {content: "";}
 }
 
-#loading_text {
+#loading-text {
 	display: inline-block;
 }
 
-#loading_text:after {
+#loading-text:after {
 	display: inline-block;
 	width: 0px;
 	content: "...";

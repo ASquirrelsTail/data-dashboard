@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="UTF-8">
@@ -20,7 +21,7 @@
     <script src="assets/js/script.js" type="text/javascript"></script>
 </head>
 
-<body>   
+<body>
     <header>
         <div class="logo">
             <h1>Bloodhound</h1>
@@ -30,19 +31,21 @@
             <div id="help" class="btn"></div>
         </nav>
     </header>
-    <!-- Modal showing loading information -->
+    <!-- Modal showing intro -->
     <section id="intro-modal">
         <div class="modal-cover modal-cover--solid"></div>
         <div class="modal flex-container">
             <div class="flex-50">
                 <h2>Welcome to Bloodhound</h2>
-                <p>Bloodhound is an app for spatialy visualising and filtering transaction data to help you find out where your customers are. 
-                Using Bloodhound you can find out where customers are spending money with your business, and where they aren't, helping you make better decisions.</p>
+                <p>Bloodhound is an app for spatialy visualising and filtering transaction data to help you find out where your customers are.
+                    Using Bloodhound you can find out where customers are spending money with your business, and where they aren't, helping you make better decisions.</p>
                 <p>This demo has a selection of sample data sets to choose from, or you can choose to upload a .csv file of your own.</p>
             </div>
             <div class="flex-50">
                 <form id="data-select" class="flex-container">
-                    <div class="flex-100"><label for="data-file"><h3 class="center">Select test data</h3></label></div>
+                    <div class="flex-100"><label for="data-file">
+                            <h3 class="center">Select test data</h3>
+                        </label></div>
                     <select name="data-file" id="data-file">
                         <option value="" disabled selected>Select a file...</option>
                         <option value="cosmetics.csv">Cosmetics Company Data</option>
@@ -54,9 +57,28 @@
                         <label for="data-upload" id="data-upload-button"><span class="button">Choose File</span><span class="filename">No file selected</span></label>
                         <input type="file" name="data-upload" id="data-upload" accept=".csv">
                     </div>
+                    <div id="validation-line" class="flex-100"></div>
                     <input type="submit" value="Load Data">
                 </form>
             </div>
+        </div>
+    </section>
+    <!-- Modal showing loading information -->
+    <section id="loading-modal">
+        <div class="modal-cover modal-cover--solid"></div>
+        <div class="modal center">
+            <div><span class="loading-spinner"></span></div>
+            <p id="loading-text">Loading</p>
+            <p id="loading-status"></p>
+        </div>
+    </section>
+    <!-- Modal showing error information -->
+    <section id="error-modal">
+        <div class="modal-cover"></div>
+        <div class="modal center">
+            <h2>Error!</h2>
+            <p id="error-text"></p>
+            <button id="error-continue">Reload dashboard</button>
         </div>
     </section>
     <section id="es6-modal">
@@ -107,4 +129,5 @@
         </div>
     </section>
 </body>
+
 </html>

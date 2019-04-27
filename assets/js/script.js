@@ -3,7 +3,10 @@ const selectionColor = "#e74c3c";
 const totalColor = "#3498db";
 
 $(() => {
+    $("#loading-modal").hide();
+    $("#error-modal").hide();
     $("#upload-line").hide();
+    $("#validation-line").hide();
 
     $("#data-file").on("change", () => {
         $("#data-file").blur();
@@ -11,6 +14,7 @@ $(() => {
         let dataFile = $("#data-file").val();
         if (dataFile == "-1") $("#upload-line").show();
         else $("#upload-line").hide();
+        $("#validation-line").slideUp();
     });
 
     $("#data-upload").on("change", () => {
@@ -18,6 +22,7 @@ $(() => {
         if (!filename) filename = "No file selected";
         $("#data-upload-button .filename").text(filename);
         $("#data-upload-button span").css("border-color", "initial");
+        $("#validation-line").slideUp();
     });
 
     $("#data-select").on("submit", (e) => {
@@ -27,32 +32,32 @@ $(() => {
             if (dataFile != "-1") loadData(dataFile);
             else{
                 let filename = $("#data-upload").val();
-                if (filename == "") $("#data-upload-button span").css("border-color", "red"); // console.log("No file selected");
-                else loadData(filename.split("\\").pop(), $("#data-upload")[0].files[0]);
+                if (filename == "") {
+                    $("#data-upload-button span").css("border-color", "red");
+                    $("#validation-line").text("Please select a data file to upload!").slideDown();
+                } else loadData(filename.split("\\").pop(), $("#data-upload")[0].files[0]);
             }
-        }else $("#data-file").css("border-color", "red");
+        }else {
+            $("#data-file").css("border-color", "red");
+            $("#validation-line").text("Please select a data file to open!").slideDown();
+        }
     });
 });
 
 
 function loadData(dataFile, file) {
-    $("#intro-modal").html(`<div class="modal-cover"></div>
-                            <div class="modal">
-                            <div><span class="loading-spinner"></span></div>
-                            <p id="loading_text">Loading</p>
-                            <p id="loading_status"></p>
-                            </div>`);
-     
+    $("#loading-modal").show();
+    $("#intro-modal").hide();
 
     loadingStatus("Loading " + dataFile);
     console.log(dataFile);
     if (!file) $.get("assets/data/" + dataFile)
                 .then(initDashboard)
-                .catch(() => console.log("Failed to load data!"));
+                .catch(handleError);
     else {
         let reader = new FileReader();
         reader.readAsText(file);
-        reader.onload = () => initDashboard(reader.result);
+        reader.onload = () => initDashboard(reader.result).catch(handleError);
     }
 
     // Attach click events to show/hide the help modal
@@ -69,6 +74,15 @@ function loadData(dataFile, file) {
 async function initDashboard(data) {
     loadingStatus("Parsing data.");
     data = d3.csv.parse(data);
+
+    console.log(data);
+    
+    // Check data file contains the required columns
+    if (data.length < 1) throw new Error("Failed to parse data file.");
+    else if (!data[0].date) throw new Error('Data file missing "date" column.');
+    else if (!data[0].name) throw new Error('Data file missing "name" column.');
+    else if (!data[0].spend) throw new Error('Data file missing "spend" column.');
+    else if (!data[0].postcode) throw new Error('Data file missing "postcode" column.');
     
     // Get postcodes from data, verify them and retrieve latitude and longditude from postcodes.io
     let postcodes = getUniquePostcodes(data);
@@ -152,7 +166,7 @@ async function initDashboard(data) {
     let resizeDebounce = false; // Variable to debounce resize event, do it doesn't fire repeatedly when the window is resized.
     $(window).on("resize", resizeDashboard);
 
-    $("#intro-modal").fadeOut();
+    $("#loading-modal").fadeOut();
 
     // Set up the composite chart for total spend, and spend for the selected locations
     function createCompositeChart(chartID) {
@@ -167,10 +181,11 @@ async function initDashboard(data) {
         minDate = dateDim.bottom(1)[0].date;
         maxDate = dateDim.top(1)[0].date;
         
-        chart.margins({top: 15, right: 50, left: 70, bottom: 30})
+        chart.margins({top: 15, right: 50, left: 50, bottom: 30})
              .brushOn(false)
              .transitionDuration(500)
              .shareTitle(false)
+             .yAxisLabel("Spend", 25)
              .x(d3.time.scale().domain([minDate, maxDate]))
              .yAxis().ticks(4).tickFormat((v) => {
                 if (v >= 1000) v = (v/1000).toFixed(1) + "k";
@@ -529,13 +544,24 @@ async function initDashboard(data) {
 
 // Change the loading status text on the loading modal
 function loadingStatus(text) {
-    $("#loading_status").text(text);
+    $("#loading-status").text(text);
+}
+
+
+// Shows an error modal with the option to reload the page
+function handleError(error) {
+    if (error.name === "Error") $("#error-text").text(error.message); //Check if the error is user defined, else show generic message
+    else $("#error-text").text("An error has occurred, please reload the page.");
+    $("#error-continue").on("click", () => location.reload());
+    $("#loading-modal").hide();
+    $("#intro-modal").hide();
+    $("#error-modal").show();
 }
 
 
 //Returns an array of unique postcodes from the data set
 function getUniquePostcodes(data) {
-    $("#loading_status").text("Getting postcodes from data.");
+    $("#loading-status").text("Getting postcodes from data.");
 
     let postcodes = [];
 
@@ -580,20 +606,20 @@ function getLatLngFromPostcodes(postcodeList) {
                     let response = JSON.parse(this.responseText);
                     results = results.concat(response.result);
 
-                    $("#loading_status").text(`Checked ${results.length} out of ${noPostcodesToCheck} postcodes.`);
+                    loadingStatus(`Checked ${results.length} out of ${noPostcodesToCheck} postcodes.`);
 
                     if (postcodeList.length > 0) sendNewPostcodesRequest(); //If there are still Postcodes to get data for send another request.
                     else {
                         resolve(results); //Otherwise resolve the promise to return the results
                     }
                 }else{
-                    reject("Failed to retrieve postcode data. HTTP status: " + this.status);
+                    reject(new Error("Failed to retrieve postcode data. HTTP status: " + this.status));
                 }
             }
         }
 
         if (postcodeList.length > 0) sendNewPostcodesRequest();
-        else reject("No postcodes to check!");
+        else reject(new Error("No postcodes found in data!"));
     });
 }
 
@@ -623,7 +649,7 @@ function assignLatLngIDs(postcodeData, data) {
         });
     });
 
-    // if (locationIDs.length < 1) throw // No valid postcodes!
+    if (locationIDs.length < 1) throw new Error("No valid postcodes found.");
 
     return locationIDs;
 }

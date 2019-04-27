@@ -53,7 +53,6 @@ It should look functional and appeal to people who have a job to get done.
 ### Features Left to Implement
 
 - Help button which explains how the dashboard can be used.
-- A message for users of borwsers lacking ES6 support that they must use a more modern browser.
 - A heatmap view would be useful for users to visualise spend on the map itself, but due to the potential scale of data sets is particularly difficult to implement.
 
 ## Technologies Used
