@@ -687,7 +687,7 @@ function createLocationMarkers(locations, map) {
     markers = [];
     
     locations.forEach((location, i) => {
-        let newMarker = new google.maps.Marker({position: {lat: location.lat, lng: location.lng}, title: location.postcode, map: map});
+        let newMarker = new google.maps.Marker({position: {lat: parseFloat(location.lat), lng: parseFloat(location.lng)}, title: location.postcode, map: map});
         newMarker.active = true; //Extend the marker object with active property
         markers.push(newMarker);
     });

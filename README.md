@@ -52,7 +52,6 @@ It should look functional and appeal to people who have a job to get done.
 
 ### Features Left to Implement
 
-- Help button which explains how the dashboard can be used.
 - A heatmap view would be useful for users to visualise spend on the map itself, but due to the potential scale of data sets is particularly difficult to implement.
 
 ## Technologies Used
@@ -101,7 +100,11 @@ The Google Maps API key used in this project is restricted to the URL of its Git
 
 ## Known Issues
 
+Randomly generating convincing test data is difficult, I've done my best to generate something that shows the capabilities of the dashboard.
+
 The dashboard does not function in Internet Explorer due to the use of JavaScript ES6 promises, async/await and arrow functions. Modernizr is used to show IE users (or anyone with an older browser) a notice informing them.
+
+Some additional functionality is lacking on touch devices due to the lack of hover to show additional information, however this doesn't impact how the dashboard works.
 
 Over time some of the postcodes from the test data sets are occasionally removed from use. These are filtered out of the data set, however this results in some data not being displayed as expected (for instance fewer total transactions than the data file contains).
 
