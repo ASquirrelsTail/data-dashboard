@@ -68,6 +68,9 @@ function loadData(dataFile, file) {
     $("#help-modal .modal-cover").on("click", () => {
         $("#help-modal").fadeOut();
     });
+    $("#close-help").on("click", () => {
+        $("#help-modal").fadeOut();
+    });
 }
 
 
@@ -139,7 +142,7 @@ async function initDashboard(data) {
 
 
     let clearControl = $(document.createElement("div")).css("z-index", "1000");
-    let clearControlButton = $(document.createElement("button")).addClass("btn").attr("id", "clear-selection").text("Select All").hide();
+    let clearControlButton = $(document.createElement("button")).addClass("map-btn").attr("id", "select-all").text("Select All").hide();
     clearControl.append(clearControlButton);
 
     clearControl[0].index = 1;
@@ -410,8 +413,8 @@ async function initDashboard(data) {
         }
 
         // Show or hide the clear selection button as needed
-        if (markers.find((item) => !item.active)) $("#clear-selection").fadeIn(300);
-        else $("#clear-selection").fadeOut(300);
+        if (markers.find((item) => !item.active)) $("#select-all").fadeIn(300);
+        else $("#select-all").fadeOut(300);
 
         showTopSpenders();
     }
@@ -551,7 +554,7 @@ function loadingStatus(text) {
 // Shows an error modal with the option to reload the page
 function handleError(error) {
     if (error.name === "Error") $("#error-text").text(error.message); //Check if the error is user defined, else show generic message
-    else $("#error-text").text("An error has occurred, please reload the page.");
+    else $("#error-text").text("An error has occurred, please reload the dashboard.");
     $("#error-continue").on("click", () => location.reload());
     $("#loading-modal").hide();
     $("#intro-modal").hide();

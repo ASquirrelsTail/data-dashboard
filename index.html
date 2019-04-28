@@ -28,9 +28,42 @@
             <h2>Sniff out your best customers!</h2>
         </div>
         <nav>
-            <div id="help" class="btn"></div>
+            <div id="help"></div>
         </nav>
     </header>
+    <section>
+        <div class="graph-wrapper">
+            <!-- #line-graph will be used to create a dc.js composite line chart -->
+            <div id="line-graph"></div>
+        </div>
+        <div class="graph-info">
+            <div id="key">
+                <span id="total-spend" class="key-item"></span>
+                <!-- #top-spenders will be updated with the top spenders of the current selection -->
+                <span id="top-spenders" class="key-item"></span>
+            </div>
+            <div id="dates">
+                Date range: <input type="text" name="startdate" id="start-date" class="date-input" /> to <input type="text" name="enddate" id="end-date" class="date-input" />
+            </div>
+        </div>
+        <div class="flex-container">
+            <div class="map-wrapper">
+                <!-- #map will be used by the Google Maps API to create a map -->
+                <div id="map"></div>
+            </div>
+            <div class="pies-wrapper">
+                <!-- #spend-pie and #transaction-pie will be used to create dc.js pie charts -->
+                <div class="pie">
+                    <div id="spend-pie"></div>
+                    <h2>of total spend</h2>
+                </div>
+                <div class="pie">
+                    <div id="transaction-pie"></div>
+                    <h2>of all transactions</h2>
+                </div>
+            </div>
+        </div>
+    </section>
     <!-- Modal showing intro -->
     <section id="intro-modal">
         <div class="modal-cover modal-cover--solid"></div>
@@ -74,18 +107,11 @@
     </section>
     <!-- Modal showing error information -->
     <section id="error-modal">
-        <div class="modal-cover"></div>
+        <div class="modal-cover modal-cover--solid"></div>
         <div class="modal center">
             <h2>Error!</h2>
             <p id="error-text"></p>
             <button id="error-continue">Reload dashboard</button>
-        </div>
-    </section>
-    <section id="es6-modal">
-        <div class="modal-cover modal-cover--solid"></div>
-        <div class="modal">
-            <h2>Bloodhound</h2>
-            <p>Unfortunately your internet browser is incapable of running Bloodhound. Try updating your browser, or switch to <a href="https://www.google.co.uk/chrome/">Google Chome</a>.</p>
         </div>
     </section>
     <!-- Modal showing help and information -->
@@ -93,39 +119,27 @@
         <div class="modal-cover"></div>
         <div class="modal">
             <h3>Help</h3>
+            <div class="flex-container align-top">
+                <div class="flex-50">
+                    <p>Bloodhound is designed so that you can filter transaction data based on location, and the charts will show information related to the selected locations (in red) vs the total for all locations (in blue). The line chart shows daily spend for both the selected locations as well as the total, and the pie charts show what proportion of the totals the selection is responsible for. Hovering over the charts and key shows additional information on desktop devices.</p>
+                </div>
+                <div class="flex-50">
+                    <p>To change the selection click on markers on the map to add or remove them from the selection. Using the select all button on the top right of the map you can select all available markers, while the clear selection button de-selects all markers.</p>
+                    <p>The date range of the date can be changed by selecting the dates beneath the line chart.</p>
+                </div>
+                <div class="flex-100">
+                    <p>Bloodhound was created for Code Institute's Stream One Milestone Project: Interactive Frontend Development. More information can be found on <a href="https://github.com/ASquirrelsTail/data-dashboard" target="_blank">GitHub</a>.</p>
+                </div>
+                <button id="close-help">Close</button>
+            </div>
         </div>
     </section>
-    <section>
-        <div class="graph-wrapper">
-            <!-- #line-graph will be used to create a dc.js composite line chart -->
-            <div id="line-graph"></div>
-        </div>
-        <div class="graph-info">
-            <div id="key">
-                <span id="total-spend" class="key-item"></span>
-                <!-- #top-spenders will be updated with the top spenders of the current selection -->
-                <span id="top-spenders" class="key-item"></span>
-            </div>
-            <div id="dates">
-                Date range: <input type="text" name="startdate" id="start-date" class="date-input" /> to <input type="text" name="enddate" id="end-date" class="date-input" />
-            </div>
-        </div>
-        <div class="flex-container">
-            <div class="map-wrapper">
-                <!-- #map will be used by the Google Maps API to create a map -->
-                <div id="map"></div>
-            </div>
-            <div class="pies-wrapper">
-                <!-- #spend-pie and #transaction-pie will be used to create dc.js pie charts -->
-                <div class="pie">
-                    <div id="spend-pie"></div>
-                    <h2>of total spend</h2>
-                </div>
-                <div class="pie">
-                    <div id="transaction-pie"></div>
-                    <h2>of all transactions</h2>
-                </div>
-            </div>
+    <!-- Modal showing notice to users of older browsers -->
+    <section id="es6-modal">
+        <div class="modal-cover modal-cover--solid"></div>
+        <div class="modal">
+            <h2>Bloodhound</h2>
+            <p>Unfortunately your internet browser is incapable of running Bloodhound. Try updating your browser, or switch to <a href="https://www.google.co.uk/chrome/">Google Chome</a>.</p>
         </div>
     </section>
 </body>
