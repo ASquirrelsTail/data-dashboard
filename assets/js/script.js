@@ -50,7 +50,6 @@ function loadData(dataFile, file) {
     $("#intro-modal").hide();
 
     loadingStatus("Loading " + dataFile);
-    console.log(dataFile);
     if (!file) $.get("assets/data/" + dataFile)
                 .then(initDashboard)
                 .catch(handleError);
@@ -77,8 +76,6 @@ function loadData(dataFile, file) {
 async function initDashboard(data) {
     loadingStatus("Parsing data.");
     data = d3.csv.parse(data);
-
-    console.log(data);
     
     // Check data file contains the required columns
     if (data.length < 1) throw new Error("Failed to parse data file.");
@@ -768,7 +765,8 @@ function createNdx(data) {
 }
 
 
-//Redeclare ClusterIcon onAdd function prototype to trigger cluster redraw event whenever clusters are changed. (For instance when the zoom level changes, or markers are added or removed)
+// Redeclare ClusterIcon onAdd function prototype to trigger cluster redraw event whenever clusters are changed. (For instance when the zoom level changes, or markers are added or removed)
+// Modified on click listener to listen for double clicks within 250ms, and zoom on cluster, else do single click.
 ClusterIcon.prototype.onAdd = function() {
   this.div_ = document.createElement('DIV');
   if (this.visible_) {
@@ -784,7 +782,17 @@ ClusterIcon.prototype.onAdd = function() {
   var that = this;
 
   google.maps.event.addDomListener(this.div_, 'click', function() {
-    that.triggerClusterClick();
+    if (that.firstClick) { // If cluster has already been clicked cancel the timeout, and zoom on the contents of the cluster
+        clearTimeout(that.firstClick);
+        let newCenter = that.cluster_.getCenter();
+        let newBounds = that.cluster_.getBounds();
+        that.map_.panTo(newCenter);
+        that.map_.fitBounds(newBounds);
+    }else that.firstClick = setTimeout(() => { // Otherwise set a timeout, and trigger clusterclick when it completes
+        that.triggerClusterClick();
+        that.firstClick = false;
+    }, 250);
+    
   });
 
   //Solution for clearing doubleclicks from https://github.com/google-map-react/google-map-react/issues/319
@@ -796,15 +804,6 @@ ClusterIcon.prototype.onAdd = function() {
   google.maps.event.addDomListener(this.div_, 'mouseout', function() {
     that.map_.set("disableDoubleClickZoom", false);
   });
-
-  // google.maps.event.addDomListener(this.div_, 'dblclick', function() {
-  // 	let newCenter = that.cluster_.getCenter();
-  // 	let newBounds = that.cluster_.getBounds();
-  //   that.map_.panTo(newCenter);
-  //   that.map_.fitBounds(newBounds);
-  //   console.log("doubleclick", newCenter, newBounds);
-  //   // that.map_.set("disableDoubleClickZoom", false);
-  // });
 };
 
 //Redeclare ClusterIcon show function prototype to trigger cluster redraw event whenever it is called and the cluster's div is updated

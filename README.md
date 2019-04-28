@@ -87,13 +87,11 @@ It should look functional and appeal to people who have a job to get done.
 
 The site has been tested on a variety of devices, using different browsers and resolutions to ensure compatability and responsiveness.
 
-Automated testing was carried out using Jasmine, these tests can be run [here](https://asquirrelstail.github.io/data-dashboard/testing/). Due to the graphical nature of the dashboard the [test specs](https://github.com/ASquirrelsTail/data-dashboard/tree/master/testing/spec) mainly focus on ensuring user input is correctly validated and handled.
-
 Manual testing was carried out throughout development using a small consistent data set to ensure results (graphs, maps etc.) displayed data correctly for various situations. Larger data sets were used to test how well the dashboard handled large amounts of data.
 
 Specialised data sets for each scenario were used to walk through user stories and ensure the dashboard helped them achieve their aims. These data sets can be selected when the dashboard loads. You can generate your own using the [test data generator](https://asquirrelstail.github.io/data-dashboard/generator.html). More complicated scenarios were made by stitching together multiple generated data sets.
 
-A/B user testing was used to compare map markers and determine which design was easiest to understand. A/B testing was also used to see how marker clicks should react consistently with expectations, for example double clicks, and clicking to add/remove from the selection.
+A/B user testing was used to compare map markers and determine which design was easiest to understand. A/B testing was also used to determine how marker clicks should react consistently with expectations, for example double clicks, and clicking to add/remove from the selection.
 
 ## Deployment
 
@@ -103,17 +101,19 @@ The Google Maps API key used in this project is restricted to the URL of its Git
 
 ## Known Issues
 
-The dashboard does not function in Internet Explorer due to the use of JavaScript ES6 promises, async/await and arrow functions. Modernizr is used to show IE users a notice informing them.
+The dashboard does not function in Internet Explorer due to the use of JavaScript ES6 promises, async/await and arrow functions. Modernizr is used to show IE users (or anyone with an older browser) a notice informing them.
 
-Over time some of the postcodes from the test data sets have been removed from use. These are filtered out of the data set, however this results in some data not being displayed as expected (for instance fewer total transactions).
+Over time some of the postcodes from the test data sets are occasionally removed from use. These are filtered out of the data set, however this results in some data not being displayed as expected (for instance fewer total transactions than the data file contains).
 
-The Google Maps API triggers two click events and a double click event when the map is double clicked, resulting in marker clusters being rapidly selected/deselected when they are double clicked. I tried removing doubleclicks completely and debouncing single clicks, but it made single clicks feel less responsive.
+The Google Maps API triggers two click events and a double click event when the map is double clicked, resulting in marker clusters being rapidly selected/deselected when they are double clicked. This issue has been circumvented by only listening for single clicks and waiting to see if a second click occurs before performing the required action. The downside is single cluster clicks have a quarter second delay on them and feel less responsive.
+
+Filtering the dates to begin or end on a day where no transactions occur causes a graphical glitch. This is a known issue with dc.js, and the [workaround detailed here](https://github.com/dc-js/dc.js/issues/949) partially fixes the issue, but can still cause it to appear as if transactions occured on days when none actually did.
 
 ## Credits
 
 ### Acknowledgements
 
-The idea of using the marker mouseover/out events to disable regular double click zooming in Google Maps came from [here](https://github.com/google-map-react/google-map-react/issues/319), although it required an additional event listener on bounds_changed to enable double click zooming again, as marker clusters are removed when the zoom level is changed.
+The idea of using the marker mouseover/out events to disable regular double click zooming in Google Maps came from [here](https://github.com/google-map-react/google-map-react/issues/319).
 
 Ben Marshall's [guide](https://benmarshall.me/styling-file-inputs/) to styling file inputs was used to bring it in line with other elements on the dashboard.
 
