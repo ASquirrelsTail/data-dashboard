@@ -32,7 +32,7 @@ Beth is the marketing manager for a mail order cosmetics company and wants to se
 
 Based on the goals and user stories I put together a quick wireframe to show the layout of the graphs and map. Although not primarily aimed at mobile devices the dashboard should be responsive and adjust its layout to fit, even if not all features are included.
 
-![alt text](https://asquirrelstail.github.io/data-dashboard/pre-prod/wireframe.JPG "Wireframe")
+![alt text](https://asquirrelstail.github.io/data-dashboard/preprod/wireframe.JPG "Wireframe")
 
 ### Visuals
 
