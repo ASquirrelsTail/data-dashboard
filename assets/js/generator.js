@@ -5,18 +5,21 @@ $(() => {
     $("#end-date").datepicker({dateFormat: "dd/mm/yy"});
 
     $("#generate").on("click", generate);
-
+    
+    // Copy contents of result-data textarea to clipboard
     $("#copy-to-clipboard").on("click", () => {
         let resultData = $("#result-data");
         resultData.select();
         document.execCommand("copy");
         resultData.blur();
-    })
+    });
 });
 
 
+// Generates a csv file of random transaction data and outputs it to the results-data textarea
 async function generate() {
-
+    
+    // Get form input
     let startDate = $("#start-date").val().split("/");
     let endDate = $("#end-date").val().split("/");
 
@@ -34,15 +37,14 @@ async function generate() {
 
     let noCustomers = parseInt($("#no-customers").val());
 
-    
+    // If there are less transactions than there are customers, limit the number of customers to generate
     if (noCustomers > noTransactions) noCustomers = noTransactions;
 
+    // Get customer names from the randomuser.me API
     let customerQuery = await $.ajax({url: "https://randomuser.me/api/?results=" + noCustomers + "&inc=name&nat=gb", dataType: 'json'});
     let customers = customerQuery.results.map((query) => {
         return {name: capitalise(query.name.first) + " " + capitalise(query.name.last)};
     });
-    
-    
 
     let epicenter = $("#epicenter").val();
     let radius = parseInt($("#radius").val());
@@ -55,6 +57,7 @@ async function generate() {
 }
 
 
+// Generates Postcodes based on an given postcode as the centre, picking random postcodes within a given radius
 async function generatePostcodes(customers, epicenter, radius) {
     let center = {status: 404};
     if (epicenter != "") center = await $.ajax({url: "https://api.postcodes.io/postcodes/" + epicenter, dataType: 'json'}); // If epicenter isn't empty get lat/long
@@ -66,6 +69,7 @@ async function generatePostcodes(customers, epicenter, radius) {
         for (let i=0; i < customers.length; i++) {
             let postcodeQuery = {result: null};
             let attempts = 0;
+            // Make 5 attempts to generate a valid location, as some latitude and longditudes won't returna a valid postcode if they're in the middle of nowhere
             while (!postcodeQuery.result && attempts < 5) {
                 let distance = Math.random() * radius / 69;
                 let direction = Math.random() * 2 * Math.PI;
@@ -78,6 +82,7 @@ async function generatePostcodes(customers, epicenter, radius) {
                 attempts++;
             }
             if (attempts >= 5) {
+                // If a valid postcode still isn't generated, get a random postcode with the same geographic area as the epicentre.
                 postcodeQuery = await $.ajax({url: "https://api.postcodes.io/random/postcodes?outcode=" + epicenter.split(" ")[0], dataType: 'json'});
                 customers[i].postcode = postcodeQuery.result.postcode;
             }else customers[i].postcode = postcodeQuery.result[0].postcode;
@@ -87,6 +92,7 @@ async function generatePostcodes(customers, epicenter, radius) {
 }
 
 
+// Generates a random postcode for each customer
 async function generateRandomPostcodes(customers) {
     for (let i=0; i < customers.length; i++) {
         random = await $.ajax({url: "https://api.postcodes.io/random/postcodes", dataType: 'json'});
@@ -96,6 +102,7 @@ async function generateRandomPostcodes(customers) {
 }
 
 
+// Generates transactions, within a given date and price range, returns a csv file as a string
 function generateTransactions(customers, noTransactions, minSpend, avgSpend, maxSpend, minDate, dateBounds) {
     noCustomers = customers.length;
     let transactions = [];

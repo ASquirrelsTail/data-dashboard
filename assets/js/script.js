@@ -25,14 +25,14 @@ $(() => {
         let dataFile = $("#data-file").val();
         if (dataFile) {
             if (dataFile != "-1") loadData(dataFile);
-            else{
+            else {
                 let filename = $("#data-upload").val();
                 if (filename == "") {
                     $("#data-upload-button span").css("border-color", "red");
                     $("#validation-line").text("Please select a data file to upload!").slideDown();
                 } else loadData(filename.split("\\").pop(), $("#data-upload")[0].files[0]);
             }
-        }else {
+        } else {
             $("#data-file").css("border-color", "red");
             $("#validation-line").text("Please select a data file to open!").slideDown();
         }
@@ -74,8 +74,8 @@ function loadData(dataFile, file) {
     document.title = "Bloodhound - " + dataFile;
 
     if (!file) $.get("assets/data/" + dataFile)
-                .then(initDashboard)
-                .catch(handleError);
+        .then(initDashboard)
+        .catch(handleError);
     else {
         let reader = new FileReader();
         reader.readAsText(file);
@@ -88,26 +88,26 @@ function loadData(dataFile, file) {
 async function initDashboard(data) {
     loadingStatus("Parsing data.");
     data = d3.csv.parse(data);
-    
+
     // Check data file contains the required columns
     if (data.length < 1) throw new Error("Failed to parse data file.");
     else if (!data[0].date) throw new Error('Data file missing "date" column.');
     else if (!data[0].name) throw new Error('Data file missing "name" column.');
     else if (!data[0].spend) throw new Error('Data file missing "spend" column.');
     else if (!data[0].postcode) throw new Error('Data file missing "postcode" column.');
-    
+
     // Get postcodes from data, verify them and retrieve latitude and longditude from postcodes.io
     let postcodes = getUniquePostcodes(data);
     postcodes = await getLatLngFromPostcodes(postcodes);
     let locationIDs = assignLatLngIDs(postcodes, data);
-    
+
     // Initialise google maps and add markers and cluster them
     map = initMap("map");
     markers = createLocationMarkers(locationIDs, map);
     markerCluster = createMarkerClusterer(markers, map);
 
     // When the selection changes on the map, filter the data by location, and redraw the map markers to show selection
-    map.addListener("selectionchanged", () =>{
+    map.addListener("selectionchanged", () => {
         filterByActiveMarkers();
         redrawMarkers();
     });
@@ -117,7 +117,7 @@ async function initDashboard(data) {
 
     // Create a crossfilter object from the data
     ndx = createNdx(data);
-    
+
     //Declare variables for various goups, to be assigned in filterByActiveMarkers()
     let minDate, maxDate; // Will contain min and max dates for the whole dataset
     let selectionDim; // Dimension for currently selected locations
@@ -131,7 +131,7 @@ async function initDashboard(data) {
     let topSpendersGroup; // Group the customers by spend to get to spenders 
 
     let spendAtID; // Group customer spend by location ID
-    
+
     //Set up charts and pies
     let chart = createCompositeChart("line-graph");
     let spendPie = createSpendPie("spend-pie");
@@ -168,8 +168,8 @@ async function initDashboard(data) {
 
     //Set up datepicker
 
-    $("#start-date").datepicker({defaultDate: minDate, dateFormat: "dd/mm/yy"});
-    $("#end-date").datepicker({defaultDate: maxDate, dateFormat: "dd/mm/yy"});
+    $("#start-date").datepicker({ defaultDate: minDate, dateFormat: "dd/mm/yy" });
+    $("#end-date").datepicker({ defaultDate: maxDate, dateFormat: "dd/mm/yy" });
 
     resetDateInputs();
 
@@ -192,45 +192,45 @@ async function initDashboard(data) {
 
         minDate = dateDim.bottom(1)[0].date;
         maxDate = dateDim.top(1)[0].date;
-        
-        chart.margins({top: 15, right: 50, left: 50, bottom: 30})
-             .brushOn(false)
-             .transitionDuration(500)
-             .shareTitle(false)
-             .yAxisLabel("Spend", 25)
-             .x(d3.time.scale().domain([minDate, maxDate]))
-             .yAxis().ticks(4).tickFormat((v) => {
-                if (v >= 1000) v = (v/1000).toFixed(1) + "k";
+
+        chart.margins({ top: 15, right: 50, left: 50, bottom: 30 })
+            .brushOn(false)
+            .transitionDuration(500)
+            .shareTitle(false)
+            .yAxisLabel("Spend", 25)
+            .x(d3.time.scale().domain([minDate, maxDate]))
+            .yAxis().ticks(4).tickFormat((v) => {
+                if (v >= 1000) v = (v / 1000).toFixed(1) + "k";
                 return "£" + v;
-             });
+            });
 
         chart.compose([
             dc.lineChart(chart)
-              .dimension(dateDim)
-              .group(totalSpend)
-              .title((d) => `${d.key.toDateString()}: £${d.value}`)
-              .evadeDomainFilter(true)
-              .colors(totalColor)
-              .transitionDuration(500),
+            .dimension(dateDim)
+            .group(totalSpend)
+            .title((d) => `${d.key.toDateString()}: £${d.value}`)
+            .evadeDomainFilter(true)
+            .colors(totalColor)
+            .transitionDuration(500),
             dc.lineChart(chart)
-              .dimension(dateDim)
-              .title((d) => `${d.key.toDateString()}: £${d.value.total}`)
-              .evadeDomainFilter(true)
-              .colors(selectionColor)
-              .transitionDuration(500)
+            .dimension(dateDim)
+            .title((d) => `${d.key.toDateString()}: £${d.value.total}`)
+            .evadeDomainFilter(true)
+            .colors(selectionColor)
+            .transitionDuration(500)
         ]);
 
         return chart;
     }
-    
+
     // Creates a pie chart with the label at the centre, disables click to filter
     function createPieChart(ndx, pieID) {
         let pie = dc.pieChart("#" + pieID);
 
         pie.innerRadius(50)
-                .externalLabels(-100)
-                .minAngleForLabel(0)
-                .colors(d3.scale.ordinal().range([selectionColor, totalColor]));
+            .externalLabels(-100)
+            .minAngleForLabel(0)
+            .colors(d3.scale.ordinal().range([selectionColor, totalColor]));
 
         pie.onClick = () => false; //Remove onClick from pie charts, so they can't trigger filtering
 
@@ -243,16 +243,16 @@ async function initDashboard(data) {
 
         //Always show label for Selection only, calculated as its percentage of total.
         spendPie.label((d) => {
-                    if (d.key == "Selection") {
-                        let percentage = Math.floor(d.value / spendTotal.value() * 100); //https://stackoverflow.com/questions/53033715/bar-chart-dc-js-show-percentage
-                        if (percentage < 1) percentage = "<1";
-                        return `${percentage}%`;
-                    }else return "";
-                })
-                .title((d) => { 
-                    if (d.key == "Selection") return `Selection: £${d.value}`;
-                    else return `Total: £${spendTotal.value()}`;
-                });
+                if (d.key == "Selection") {
+                    let percentage = Math.floor(d.value / spendTotal.value() * 100); //https://stackoverflow.com/questions/53033715/bar-chart-dc-js-show-percentage
+                    if (percentage < 1) percentage = "<1";
+                    return `${percentage}%`;
+                } else return "";
+            })
+            .title((d) => {
+                if (d.key == "Selection") return `Selection: £${d.value}`;
+                else return `Total: £${spendTotal.value()}`;
+            });
 
         return spendPie;
     }
@@ -263,19 +263,19 @@ async function initDashboard(data) {
 
         //Always show label for Selection only, calculated as its percentage of total.
         transactionPie.label((d) => {
-                        if (d.key == "Selection") {
-                            let percentage = Math.floor(d.value / transactionTotal.value() * 100);
-                            if (percentage < 1) percentage = "<1";
-                            return `${percentage}%`;
-                        }else return "";
-                      })
-                      .title((d) => { 
-                        if (d.key == "Selection") {
-                            let plural = "s";
-                            if (d.value <= 1) plural = "";
-                            return `Selection: ${d.value} transaction${plural}`;
-                        }else return `Total: ${transactionTotal.value()} transactions`;
-                      });
+                if (d.key == "Selection") {
+                    let percentage = Math.floor(d.value / transactionTotal.value() * 100);
+                    if (percentage < 1) percentage = "<1";
+                    return `${percentage}%`;
+                } else return "";
+            })
+            .title((d) => {
+                if (d.key == "Selection") {
+                    let plural = "s";
+                    if (d.value <= 1) plural = "";
+                    return `Selection: ${d.value} transaction${plural}`;
+                } else return `Total: ${transactionTotal.value()} transactions`;
+            });
 
         return transactionPie;
     }
@@ -293,24 +293,24 @@ async function initDashboard(data) {
             if (deviceWidth >= 992) {
                 chart.xAxis().ticks(12);
                 pieSize = $("#map").height() / 2.5;
-            }else{
+            } else {
                 chart.xAxis().ticks(8);
                 pieSize = $("#spend-pie").parent().parent().width() * 0.4;
             }
-        }else{
+        } else {
             chart.height(chartWidth * 0.5)
-                 .xAxis().ticks(6);
+                .xAxis().ticks(6);
         }
 
         spendPie.height(pieSize)
-                .width(pieSize)
-                .innerRadius(pieSize * 0.25)
-                .externalLabels(-pieSize / 2);
+            .width(pieSize)
+            .innerRadius(pieSize * 0.25)
+            .externalLabels(-pieSize / 2);
 
         transactionPie.height(pieSize)
-                      .width(pieSize)
-                      .innerRadius(pieSize * 0.25)
-                      .externalLabels(-pieSize / 2);
+            .width(pieSize)
+            .innerRadius(pieSize * 0.25)
+            .externalLabels(-pieSize / 2);
 
         dc.renderAll();
     }
@@ -352,35 +352,35 @@ async function initDashboard(data) {
             nameDim.dispose();
             topSpendersGroup.dispose();
         }
-    
+
         // Custom accumulator to only add a transactions spend where their location ID matches the current selection
         spendAtID = selectionChart.dimension().group().reduce(
-        (p, v) => {
-            if (markers[v.locationID] && markers[v.locationID].active && markers[v.locationID].getVisible()) p.total += v.spend;
-            return p;
-        }, (p, v) => {
-            if (markers[v.locationID] && markers[v.locationID].active && markers[v.locationID].getVisible()) p.total -= v.spend;
-            return p;
-        }, () => {
-            return {total: 0}
-        });
-        
+            (p, v) => {
+                if (markers[v.locationID] && markers[v.locationID].active && markers[v.locationID].getVisible()) p.total += v.spend;
+                return p;
+            }, (p, v) => {
+                if (markers[v.locationID] && markers[v.locationID].active && markers[v.locationID].getVisible()) p.total -= v.spend;
+                return p;
+            }, () => {
+                return { total: 0 }
+            });
+
         // Custom accessor to display data based on the custom accumulator
         selectionChart.group(spendAtID)
             .valueAccessor((d) => d.value.total);
-    
+
         // Dimension to group data by whether it is in the selection or not
         selectionDim = ndx.dimension((d) => {
-            if(markers[d.locationID] && markers[d.locationID].active && markers[d.locationID].getVisible()) return "Selection";
+            if (markers[d.locationID] && markers[d.locationID].active && markers[d.locationID].getVisible()) return "Selection";
             else return "";
         });
-    
+
         // Group the total spend for the selection, create a fake group (for when either the selection or excluded results are empty)
         spendGroup = selectionDim.group().reduceSum(dc.pluck("spend"));
         let spendGroupCleaned = {
             all() {
                 let cleanGroup = spendGroup.all();
-                if (!cleanGroup.find((item) => item.key == "")) cleanGroup.push({key: "", value: 0});
+                if (!cleanGroup.find((item) => item.key == "")) cleanGroup.push({ key: "", value: 0 });
                 return cleanGroup; //Fake group to fix graphical clitch from empty group after filtering dates
             }
         }
@@ -395,27 +395,27 @@ async function initDashboard(data) {
         let transactionGroupCleaned = {
             all() {
                 let cleanGroup = transactionGroup.all();
-                if (!cleanGroup.find((item) => item.key == "")) cleanGroup.push({key: "", value: 0});
+                if (!cleanGroup.find((item) => item.key == "")) cleanGroup.push({ key: "", value: 0 });
                 return cleanGroup; //Fake group to fix graphical clitch from empty group after filtering dates
             }
         }
         transactionTotal = selectionDim.groupAll().reduceCount(dc.pluck("spend"));
-    
+
         // Assign spend totals grouped by selection to the transaction pie chart
         transactionPie.dimension(selectionDim)
             .group(transactionGroupCleaned);
-        
+
         // Create a dimension for client names in the current selection.
         nameDim = ndx.dimension((d) => {
-            if(markers[d.locationID] && markers[d.locationID].active && markers[d.locationID].getVisible() && d.spend > 0) return d.name;
+            if (markers[d.locationID] && markers[d.locationID].active && markers[d.locationID].getVisible() && d.spend > 0) return d.name;
             else return "!EXCLUDE!";
         });
-    
+
         // Group selected clients by spend so the top 3 can be extracted
         topSpendersGroup = nameDim.group().reduceSum(dc.pluck("spend"));
 
         // If not initial setup redraw all charts
-        if(!init) {
+        if (!init) {
             chart.redraw();
             spendPie.redraw();
             transactionPie.redraw();
@@ -471,14 +471,14 @@ async function initDashboard(data) {
         else if (activeCount == 1) backgroundImage += "1";
         else if (activeCount < totalCount) backgroundImage += "2";
 
-        $(cluster.clusterIcon_.div_).css({"background-image": `url("${iconPath}${backgroundImage}.png")`, transform: "translateY(-24px)"});
+        $(cluster.clusterIcon_.div_).css({ "background-image": `url("${iconPath}${backgroundImage}.png")`, transform: "translateY(-24px)" });
     }
 
     //Update individual marker appearance based on whether they are part of the active selection or not
     function redrawMarkers() {
         markers.forEach((item) => {
-            if (item.active) item.setOptions({icon: iconPath + "marker-active.png"});
-            else item.setOptions({icon: iconPath + "marker-inactive.png"});
+            if (item.active) item.setOptions({ icon: iconPath + "marker-active.png" });
+            else item.setOptions({ icon: iconPath + "marker-inactive.png" });
         });
 
         markerCluster.clusters_.forEach(redrawCluster);
@@ -493,10 +493,10 @@ async function initDashboard(data) {
     // Hide markers that aren't in use by the current date filters
     function hideUnusedMarkers() {
         markerSpend = locationDim.group().reduceSum(dc.pluck("spend")).all(); // Get the spend at each location
-        
+
         // Determine if all visible markers are active or not
         allMarkersSelected = true;
-        if (markers.find((item) => !item.active && item.getVisible())) allMarkersSelected = false; 
+        if (markers.find((item) => !item.active && item.getVisible())) allMarkersSelected = false;
 
         markerCluster.removeMarkers(markers); // Remove all markers from the clusterer
         // Iterate over all markers, if they don't have any spend based on current filters hide them, otherwise add them to the marker clusterer
@@ -504,7 +504,7 @@ async function initDashboard(data) {
             if (markerSpend[i].value < 0) {
                 item.setVisible(false);
                 item.active = true;
-            }else if (item.getMap() == null) {
+            } else if (item.getMap() == null) {
                 if (!item.getVisible()) {
                     item.setVisible(true);
                     item.active = allMarkersSelected; //If all selected markers are active, any markers added back in will also be active, if not new markers will be inactive
@@ -512,9 +512,9 @@ async function initDashboard(data) {
                 markerCluster.addMarker(item);
             }
         });
-        
+
         if (!markers.find((item) => item.active && item.getVisible())) markers.forEach((item) => item.active = true); //If no visible markers are active after filtering, make all markers active
-        
+
         // Filter chart by selected markers, and redraw
         filterByActiveMarkers();
         redrawMarkers();
@@ -528,7 +528,7 @@ async function initDashboard(data) {
 
         let newMinDate = new Date(`${startDate[2]}-${startDate[1]}-${startDate[0]}`);
         let newMaxDate = new Date(`${endDate[2]}-${endDate[1]}-${endDate[0]}`);
-        
+
         // If they are invalid, reset to default
         if (newMinDate == "Invalid Date") {
             newMinDate = minDate;
@@ -538,16 +538,16 @@ async function initDashboard(data) {
             newMaxDate = maxDate;
             $("#end-date").datepicker('setDate', maxDate);
         }
-        
+
         // Change max and min dates for the date picker to be bounded by the input of each other
         $("#start-date").datepicker("option", "maxDate", newMaxDate);
         $("#end-date").datepicker("option", "minDate", newMinDate);
-        
+
         // Clear the filters from the crossfilter, then filter by date
         dateFilterDim.filter(null);
         dateFilterDim.filter(dc.filters.RangedFilter(newMinDate, newMaxDate));
         chart.focus([newMinDate, newMaxDate]);
-        
+
         // Hide any markers excluded by the new filters, and add any hidden ones back in
         hideUnusedMarkers();
     }
@@ -606,13 +606,13 @@ function getLatLngFromPostcodes(postcodeList) {
             xhr.setRequestHeader("Content-Type", "application/json");
 
             xhr.onreadystatechange = processRequestResult;
-                
-            xhr.send(JSON.stringify({postcodes})); //The bulk postcode lookup requires a json object containing an array called postcodes
+
+            xhr.send(JSON.stringify({ postcodes })); //The bulk postcode lookup requires a json object containing an array called postcodes
         }
 
         function processRequestResult() {
             if (this.readyState == 4) {
-                if(this.status == 200) {
+                if (this.status == 200) {
                     let response = JSON.parse(this.responseText);
                     results = results.concat(response.result);
 
@@ -622,7 +622,7 @@ function getLatLngFromPostcodes(postcodeList) {
                     else {
                         resolve(results); //Otherwise resolve the promise to return the results
                     }
-                }else{
+                } else {
                     reject(new Error("Failed to retrieve postcode data. HTTP status: " + this.status));
                 }
             }
@@ -647,13 +647,13 @@ function assignLatLngIDs(postcodeData, data) {
                     item.postcode = "Invalid Postcode";
                     item.locationID = -1;
                     item.spend = 0; // Filter out invalid postcodes, some postcodes have gone out of existence since I built the dataset...
-                }else{
+                } else {
                     item.postcode = resultData.result.postcode; //If the query returned a valid postcode, set the postcode in the dataset to that 
                     let uniqueIndex = locationIDs.findIndex((location) => (location.postcode == item.postcode)); //Check if that postcode already exists in the list of locations
                     if (uniqueIndex < 0) { //If it doesn't, add it in and add its ID to the data
                         item.locationID = locationIDs.length;
-                        locationIDs.push({postcode: resultData.result.postcode, lat: resultData.result.latitude, lng: resultData.result.longitude, active: true});
-                    }else item.locationID = uniqueIndex; //If it does, add its location ID to the data
+                        locationIDs.push({ postcode: resultData.result.postcode, lat: resultData.result.latitude, lng: resultData.result.longitude, active: true });
+                    } else item.locationID = uniqueIndex; //If it does, add its location ID to the data
                 }
             }
         });
@@ -681,8 +681,9 @@ function initMap(mapID) {
         rotateControl: false,
         fullscreenControl: false,
         styles: [
-            {featureType: "poi", stylers: [{visibility: "off"}]}, 
-            {featureType: "transit", stylers: [{visibility: "off"}]}]
+            { featureType: "poi", stylers: [{ visibility: "off" }] },
+            { featureType: "transit", stylers: [{ visibility: "off" }] }
+        ]
     });
 
     return map;
@@ -695,22 +696,22 @@ function createLocationMarkers(locations, map) {
     loadingStatus("Adding map markers.");
 
     markers = [];
-    
+
     locations.forEach((location, i) => {
-        let newMarker = new google.maps.Marker({position: {lat: parseFloat(location.lat), lng: parseFloat(location.lng)}, title: location.postcode, map: map});
+        let newMarker = new google.maps.Marker({ position: { lat: parseFloat(location.lat), lng: parseFloat(location.lng) }, title: location.postcode, map: map });
         newMarker.active = true; //Extend the marker object with active property
         markers.push(newMarker);
     });
 
     //Add listener for marker click, resolve it, filter and redraw
-    markers.forEach((marker) =>{
+    markers.forEach((marker) => {
         marker.addListener("click", function() {
-            
+
             if (!this.active) this.active = true; //If the clicked marker was inactive, make it active
             else if (markers.every((item) => item.active || !item.getVisible())) { //If all markers were active, make them all inactive, except this one
-                markers.forEach((item) => {if (item.getVisible()) item.active = false});
+                markers.forEach((item) => { if (item.getVisible()) item.active = false });
                 this.active = true;
-            }else if (markers.find((item) => (item.active && item.getVisible()) && item != this)) this.active = false; //If at least some of the other markers are active, make this one inactive
+            } else if (markers.find((item) => (item.active && item.getVisible()) && item != this)) this.active = false; //If at least some of the other markers are active, make this one inactive
             else markers.forEach((item) => item.active = true); //Otherwise this is the only active marker, so set them all to active
 
             google.maps.event.trigger(map, "selectionchanged", true); // Filter data by active markers, and redraw
@@ -725,33 +726,34 @@ function createLocationMarkers(locations, map) {
 function createMarkerClusterer(markers, map) {
     loadingStatus("Clustering map markers.");
     //Initilise marker clusterer from MarkerClusterer API for Google Maps using array of markers
-    let markerCluster = new MarkerClusterer(map, markers,
-            {averageCenter: true, 
-                zoomOnClick: false,
-                styles: [{
-                    url: iconPath + "cluster-active.png",
-                    height: 48,
-                    width: 55,
-                    anchor: [10, 0],
-                    textColor: "#000",
-                    textSize: 15,
-                }]});
+    let markerCluster = new MarkerClusterer(map, markers, {
+        averageCenter: true,
+        zoomOnClick: false,
+        styles: [{
+            url: iconPath + "cluster-active.png",
+            height: 48,
+            width: 55,
+            anchor: [10, 0],
+            textColor: "#000",
+            textSize: 15,
+        }]
+    });
 
     //Add listener for cluster clicks, filter and redraw
-    map.addListener("clusterclick", (cluster) =>{
+    map.addListener("clusterclick", (cluster) => {
         let clusterMarkers = cluster.getMarkers()
 
         // if (clusterMarkers.every((item) => !item.active)) clusterMarkers.forEach((item) => item.active = true); //If all, or some of the markers in the cluster are inactive, make them all active
         // else 
         if (clusterMarkers.find((item) => !item.active)) clusterMarkers.forEach((item) => item.active = true);
         else if (markers.every((item) => item.active || !item.getVisible())) { //If all the markers are active, make them all inactive except these ones
-            markers.forEach((item) => {if (item.getVisible()) item.active = false});
+            markers.forEach((item) => { if (item.getVisible()) item.active = false });
             clusterMarkers.forEach((item) => item.active = true);
-        }else if (markers.find((item) => (item.active && item.getVisible()) && !clusterMarkers.includes(item))) clusterMarkers.forEach((item) => item.active = false);//If at least one marker outside the cluster is active, make the cluster inactive
+        } else if (markers.find((item) => (item.active && item.getVisible()) && !clusterMarkers.includes(item))) clusterMarkers.forEach((item) => item.active = false); //If at least one marker outside the cluster is active, make the cluster inactive
         else markers.forEach((item) => item.active = true); //Finally if all the markers are inactive, except these ones make them all active 
 
         google.maps.event.trigger(map, "selectionchanged", true);
-    });    
+    });
 
     //Listen for bound change, and reset double click to zoom
     map.addListener("bounds_changed", () => {
@@ -778,52 +780,52 @@ function createNdx(data) {
 // Redeclare ClusterIcon onAdd function prototype from libs/markerclusterer.js to trigger cluster redraw event whenever clusters are changed. 
 // (For instance when the zoom level changes, or markers are added or removed)
 ClusterIcon.prototype.onAdd = function() {
-  this.div_ = document.createElement('DIV');
-  if (this.visible_) {
-    var pos = this.getPosFromLatLng_(this.center_);
-    this.div_.style.cssText = this.createCss(pos);
-    this.div_.innerHTML = this.sums_.text;
-    google.maps.event.trigger(this.map_, 'cluster_redraw', this.cluster_); //Here
-  }
+    this.div_ = document.createElement('DIV');
+    if (this.visible_) {
+        var pos = this.getPosFromLatLng_(this.center_);
+        this.div_.style.cssText = this.createCss(pos);
+        this.div_.innerHTML = this.sums_.text;
+        google.maps.event.trigger(this.map_, 'cluster_redraw', this.cluster_); //Here
+    }
 
-  var panes = this.getPanes();
-  panes.overlayMouseTarget.appendChild(this.div_);
+    var panes = this.getPanes();
+    panes.overlayMouseTarget.appendChild(this.div_);
 
-  var that = this;
+    var that = this;
 
-  // Modified on click listener to listen for double clicks within 250ms, and zoom on cluster, else do single click.
-  google.maps.event.addDomListener(this.div_, 'click', function() {
-    if (that.firstClick) { // If cluster has already been clicked cancel the timeout, and zoom on the contents of the cluster
-        clearTimeout(that.firstClick);
-        let newCenter = that.cluster_.getCenter();
-        let newBounds = that.cluster_.getBounds();
-        that.map_.panTo(newCenter);
-        that.map_.fitBounds(newBounds);
-    }else that.firstClick = setTimeout(() => { // Otherwise set a timeout, and trigger clusterclick when it completes
-        that.triggerClusterClick();
-        that.firstClick = false;
-    }, 250);
-    
-  });
+    // Modified on click listener to listen for double clicks within 250ms, and zoom on cluster, else do single click.
+    google.maps.event.addDomListener(this.div_, 'click', function() {
+        if (that.firstClick) { // If cluster has already been clicked cancel the timeout, and zoom on the contents of the cluster
+            clearTimeout(that.firstClick);
+            let newCenter = that.cluster_.getCenter();
+            let newBounds = that.cluster_.getBounds();
+            that.map_.panTo(newCenter);
+            that.map_.fitBounds(newBounds);
+        } else that.firstClick = setTimeout(() => { // Otherwise set a timeout, and trigger clusterclick when it completes
+            that.triggerClusterClick();
+            that.firstClick = false;
+        }, 250);
 
-  //Solution for clearing doubleclicks from https://github.com/google-map-react/google-map-react/issues/319
+    });
 
-  google.maps.event.addDomListener(this.div_, 'mouseover', function() {
-    that.map_.set("disableDoubleClickZoom", true);
-  });
+    //Solution for clearing doubleclicks from https://github.com/google-map-react/google-map-react/issues/319
 
-  google.maps.event.addDomListener(this.div_, 'mouseout', function() {
-    that.map_.set("disableDoubleClickZoom", false);
-  });
+    google.maps.event.addDomListener(this.div_, 'mouseover', function() {
+        that.map_.set("disableDoubleClickZoom", true);
+    });
+
+    google.maps.event.addDomListener(this.div_, 'mouseout', function() {
+        that.map_.set("disableDoubleClickZoom", false);
+    });
 };
 
 //Redeclare ClusterIcon show function prototype from libs/markerclusterer.js to trigger cluster redraw event whenever it is called and the cluster's div is updated
 ClusterIcon.prototype.show = function() {
-  if (this.div_) {
-    var pos = this.getPosFromLatLng_(this.center_);
-    this.div_.style.cssText = this.createCss(pos);
-    this.div_.style.display = '';
-  }
-  this.visible_ = true;
-  google.maps.event.trigger(this.map_, 'cluster_redraw', this.cluster_); //Here
+    if (this.div_) {
+        var pos = this.getPosFromLatLng_(this.center_);
+        this.div_.style.cssText = this.createCss(pos);
+        this.div_.style.display = '';
+    }
+    this.visible_ = true;
+    google.maps.event.trigger(this.map_, 'cluster_redraw', this.cluster_); //Here
 };
