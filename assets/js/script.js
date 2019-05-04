@@ -3,11 +3,6 @@ const selectionColor = "#e74c3c";
 const totalColor = "#3498db";
 
 $(() => {
-    $("#loading-modal").hide();
-    $("#error-modal").hide();
-    $("#upload-line").hide();
-    $("#validation-line").hide();
-
     $("#data-file").on("change", () => {
         $("#data-file").blur();
         $("#data-file").css("border-color", "initial");
@@ -42,22 +37,6 @@ $(() => {
             $("#validation-line").text("Please select a data file to open!").slideDown();
         }
     });
-});
-
-
-function loadData(dataFile, file) {
-    $("#loading-modal").show();
-    $("#intro-modal").hide();
-
-    loadingStatus("Loading " + dataFile);
-    if (!file) $.get("assets/data/" + dataFile)
-                .then(initDashboard)
-                .catch(handleError);
-    else {
-        let reader = new FileReader();
-        reader.readAsText(file);
-        reader.onload = () => initDashboard(reader.result).catch(handleError);
-    }
 
     // Attach click events to show/hide the help modal
     $("#help").on("click", () => {
@@ -70,9 +49,42 @@ function loadData(dataFile, file) {
     $("#close-help").on("click", () => {
         $("#help-modal").fadeOut();
     });
+
+    $("#reload").on("click", () => {
+        $("#reload-modal").fadeIn();
+    });
+
+    $("#reload-modal .modal-cover").on("click", () => {
+        $("#reload-modal").fadeOut();
+    });
+    $("#cancel-reload").on("click", () => {
+        $("#reload-modal").fadeOut();
+    });
+    $("#reload-dashboard").on("click", () => location.reload());
+});
+
+
+// Gets the data file, either from the server, or the uploaded file, and passes it to initDashboard
+function loadData(dataFile, file) {
+    $("#loading-modal").show();
+    $("#intro-modal").hide();
+
+    loadingStatus("Loading " + dataFile);
+    $("#graph-title").text(dataFile);
+    document.title = "Bloodhound - " + dataFile;
+
+    if (!file) $.get("assets/data/" + dataFile)
+                .then(initDashboard)
+                .catch(handleError);
+    else {
+        let reader = new FileReader();
+        reader.readAsText(file);
+        reader.onload = () => initDashboard(reader.result).catch(handleError);
+    }
 }
 
 
+// Initialises the dashboard, Google Maps and graphs
 async function initDashboard(data) {
     loadingStatus("Parsing data.");
     data = d3.csv.parse(data);
@@ -572,8 +584,6 @@ function getUniquePostcodes(data) {
         }
     });
 
-    // if (postcodes.length < 1) throw // Data set contains no postcodes
-
     return postcodes;
 }
 
@@ -636,7 +646,7 @@ function assignLatLngIDs(postcodeData, data) {
                 if (resultData.result == null) { //If postcodes.io returned a null result that postcode is invalid, and won't be linked to a location.
                     item.postcode = "Invalid Postcode";
                     item.locationID = -1;
-                    item.spend = 0; // Filter out invalid postcodes... Postcodes have gone out of existence since I built the dataset...
+                    item.spend = 0; // Filter out invalid postcodes, some postcodes have gone out of existence since I built the dataset...
                 }else{
                     item.postcode = resultData.result.postcode; //If the query returned a valid postcode, set the postcode in the dataset to that 
                     let uniqueIndex = locationIDs.findIndex((location) => (location.postcode == item.postcode)); //Check if that postcode already exists in the list of locations
@@ -765,8 +775,8 @@ function createNdx(data) {
 }
 
 
-// Redeclare ClusterIcon onAdd function prototype to trigger cluster redraw event whenever clusters are changed. (For instance when the zoom level changes, or markers are added or removed)
-// Modified on click listener to listen for double clicks within 250ms, and zoom on cluster, else do single click.
+// Redeclare ClusterIcon onAdd function prototype from libs/markerclusterer.js to trigger cluster redraw event whenever clusters are changed. 
+// (For instance when the zoom level changes, or markers are added or removed)
 ClusterIcon.prototype.onAdd = function() {
   this.div_ = document.createElement('DIV');
   if (this.visible_) {
@@ -781,6 +791,7 @@ ClusterIcon.prototype.onAdd = function() {
 
   var that = this;
 
+  // Modified on click listener to listen for double clicks within 250ms, and zoom on cluster, else do single click.
   google.maps.event.addDomListener(this.div_, 'click', function() {
     if (that.firstClick) { // If cluster has already been clicked cancel the timeout, and zoom on the contents of the cluster
         clearTimeout(that.firstClick);
@@ -806,13 +817,12 @@ ClusterIcon.prototype.onAdd = function() {
   });
 };
 
-//Redeclare ClusterIcon show function prototype to trigger cluster redraw event whenever it is called and the cluster's div is updated
+//Redeclare ClusterIcon show function prototype from libs/markerclusterer.js to trigger cluster redraw event whenever it is called and the cluster's div is updated
 ClusterIcon.prototype.show = function() {
   if (this.div_) {
     var pos = this.getPosFromLatLng_(this.center_);
     this.div_.style.cssText = this.createCss(pos);
     this.div_.style.display = '';
-    
   }
   this.visible_ = true;
   google.maps.event.trigger(this.map_, 'cluster_redraw', this.cluster_); //Here

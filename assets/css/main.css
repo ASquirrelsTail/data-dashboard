@@ -7,10 +7,6 @@ body {
 	font-size: 20px;
 }
 
-* {
-	box-sizing: border;
-}
-
 /* HELPER CLASSES */
 
 .flex-container {
@@ -21,7 +17,7 @@ body {
 }
 
 .flex-container .align-top {
-	align-items: top;
+	align-items: flex-start;
 }
 
 .flex-50, .flex-100 {
@@ -32,9 +28,19 @@ body {
 	text-align: center;
 }
 
+.hidden {
+	display: none;
+}
+
+.main-container {
+	max-width: 2400px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
 /* HEADER */
 
-header {
+header#header {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
@@ -53,21 +59,31 @@ header {
 	margin: 0px 0px 0px 20px;
 }
 
-#help {
+.nav-button {
 	font-size: 20px;
 	font-weight: 700;
 	text-align: center;
 	background-color: white;
-	min-width: 30px;
 	cursor: pointer;
 	padding: 8px;
 	border: 2px solid black;
 	border-radius: 12px;
+	background-repeat: no-repeat;
+	background-position: center;
+	height: 30px;
+	width: 30px;
 }
 
-#help::before {
-	content: "?";
-	vertical-align: center;
+.nav-button span {
+	display: none;
+}
+
+#help {
+	background-image: url("../images/help.png");
+}
+
+#reload {
+	background-image: url("../images/reload.png");
 }
 
 /* MODALS */
@@ -77,7 +93,9 @@ header {
 	box-sizing: border-box;
 	top: 10vh;
 	width: 80vw;
-	left: 10vw;
+	max-width: 1700px;
+	left: 50vw;
+	transform: translateX(-50%);
 	z-index: 100;
 	background-color: white;
 	padding: 25px;
@@ -105,6 +123,10 @@ header {
 	background-color: rgba( 0, 0, 0, 1);
 }
 
+.modal button {
+	margin: 8px;
+}
+
 /* INTRO MODAL*/
 
 /* Hide intro modal is modernizr.js fails to detect promises or arrow functions*/
@@ -119,16 +141,18 @@ input, select, button {
 	border-radius: 8px;
 }
 
-#data-select select, #data-select #upload-line, #data-select input {
-	width: 100%;
-}
-
-form input, form select, #upload-line, #data-select h3, #validation-line {
+form input, form select, #upload-line, #data-select h3, #validation-line, .select-label{
 	margin-bottom: 10px;
 }
 
-select:focus-within {
-	border-radius: 8px 8px 0 0;
+.select-label {
+	display: block;
+	font-weight: 700;
+	font-size: 1.2em;
+}
+
+#data-select select, #data-select #upload-line, #data-select input {
+	width: 100%;
 }
 
 /* Ben Marshall's guide to styling file inputs https://benmarshall.me/styling-file-inputs/*/
@@ -230,18 +254,20 @@ select:focus-within {
 	display: none;
 }
 
-/* HELP MODAL */
-
-#help-modal {
-	display: none;
-}
-
 /* DASHBOARD */
 
 /* LINE CHART */
 
+#graph-title {
+	margin-top: 0;
+	line-height: 0px;
+	position: relative;
+	top: 1em;
+}
+
 .graph-wrapper {
 	width: 100%;
+	max-width: 2400px;
 	padding: 0;
 	position: relative;
   	display: block;
@@ -336,7 +362,7 @@ div.dc-chart {
 #map {
 	width: 100%;
 	height: 40vh;
-	border-radius: none;
+	border-radius: 0;
 }
 
 .map-wrapper {
@@ -411,9 +437,31 @@ div.dc-chart {
 		font-size: 1.2em;
 	}
 
+	.nav-button {
+		height: auto;
+		width: auto;
+	}
+
+	.nav-button span {
+		display: inline;
+	}
+
+	#help {
+		background-image: none;
+	}
+
+	#reload {
+		background-image: none;
+	}
+
 	.modal {
 		top: 20vh;
 		max-height: 80vh;
+	}
+
+	#reload-modal .modal , #error-modal .modal {
+		width: auto;
+		max-width: 80vw;
 	}
 
 	#data-select select, #data-select #upload-line, #data-select input  {
@@ -426,14 +474,6 @@ div.dc-chart {
 
 	#data-upload-button .button {
 		flex-shrink: 2;
-	}
-
-	#help {
-		content: initial;
-	}
-
-	#help::before {
-		content: "Help";
 	}
 
 	.date-input {
@@ -471,10 +511,11 @@ div.dc-chart {
 
 	.map-wrapper {
 		width: 60vw;
+		max-width: 1440px;
 	}
 
 	#map {
-		height: 50vh;
+		height: 45vh;
 		border-radius: 20px;
 	}
 
